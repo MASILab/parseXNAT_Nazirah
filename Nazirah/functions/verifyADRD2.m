@@ -5,8 +5,14 @@ if ~isempty(dir(ad))
 end
 
 disp('Re-computing AD&RD')
-mkdir('../RD/')
-mkdir('../AD/')
+
+if not(isfolder('../AD'))
+    mkdir('../RD/')
+end
+
+if not(isfolder('../AD'))
+    mkdir('../AD/')
+end
 
 try
     FA = niftiread(fa);

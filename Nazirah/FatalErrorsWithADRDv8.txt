@@ -1,1 +1,0 @@
-BLSA_5499_10-0_10 - The file /Users/nana/Documents/MATLAB/BLSA/original_files/Nazirah/BLSA_5499/BLSA_5499_10-0_10/BLSA-x-BLSA_5499-x-BLSA_5499_10-0_10-x-DTI1-x-dtiQA_v2/TGZ/../AD/ad1.nii.gzad1.nii does not exist.
