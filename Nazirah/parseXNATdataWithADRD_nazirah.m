@@ -1,16 +1,33 @@
-
-
 % Setup the root directory for all subjects
+
+%% Original PATH
 %D = '/fs4/masi/landmaba/BLSAdti/BLSA/'
+%addpath('/fs4/masi/landmaba/BLSAdti/BLSA')
+%addpath(genpath('/fs4/masi/landmaba/BLSAdti/matlab'))
+
+%% Nazirah's Mac
 D = '/Users/nana/Documents/MATLAB/BLSA/original_files/';
 D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
 
 addpath([D2 'Nazirah/functions/']);
-%addpath(genpath([D2 'matlab']));
+% %addpath(genpath([D2 'matlab']));
 
+%% MASI Computers
+% D = '/home/local/VANDERBILT/mohdkhn/Documents/data/'; % data path
+% D2 = '/home/local/VANDERBILT/mohdkhn/Documents/Test1/'; % code and labels path
+% addpath([D2 'functions/']);
 
-%addpath('/fs4/masi/landmaba/BLSAdti/BLSA')
-%addpath(genpath('/fs4/masi/landmaba/BLSAdti/matlab'))
+%% set time to record date and time to add to filename (FatalErrors.txt, AllStats.csv)
+timedate = datestr(now,'yyyymmddTHHMMSS');
+ReportFolder = [D 'statsWithADRDVol' timedate];
+
+if ~exist(ReportFolder,'dir')
+    mkdir(ReportFolder)
+end
+
+FatalErrorFile = [D 'FatalErrorsWithADRDv8-' timedate '.txt'];
+AllStatsFile = [D 'AllStats-HeaderWithADRDVol-' timedate '.csv'];
+
 %%
 % Load the label names
 % EVE_path = [D 'EVE_Labels.csv'];
@@ -90,8 +107,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 if length(dtiQA)<2 && length(Stamper)==1 && length(MultiAtlas)==1
                     % This write report only if dtiQA is less than 2.
                     % Stamper and MultiAtlas must exist.
-                    reportFileName = [D 'statsWithADRDVol' filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
-                    reportFileName = [D 'statsWithADRDVol' filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
+                    reportFileName = [ReportFolder filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
                     fp = fopen(reportFileName,'at');
                     fprintf(fp,'ONLY 1 DTI');
                     fclose(fp);
@@ -110,7 +126,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 disp('FOUND valid dataset')
                 
                 % Create CSV report file.
-                reportFileName = [D 'statsWithADRDVol' filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
+                reportFileName = [ReportFolder filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
                 
                 % If CSV file exist, don't continue below. Move to the next Session
                 if(exist(reportFileName,'file'))
@@ -206,7 +222,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                     %
                     %                     verifyADRD2(ad2name,rd2name,fa2name,[pwd filesep 'QA_maps' filesep 'dt.Bdouble']);
                     
-                    [adname,rdname,faname,mdname,roiname,boxFABiasname,boxFAname,boxFASigname] = get_and_verify_ADRD([DS dtiQA(2).name filesep 'TGZ']);
+                    [ad2name,rd2name,fa2name,md2name,roi2name,boxFABias2name,boxFA2name,boxFASig2name] = get_and_verify_ADRD([DS dtiQA(2).name filesep 'TGZ']);
                 else
                     %                     fa2name = [DS dtiQA(1).name filesep 'FA' filesep 'fa.nii.gz'];
                     %                     md2name = [DS dtiQA(1).name filesep 'MD' filesep 'md.nii.gz'];
@@ -260,7 +276,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                     ad1 = flip(ad1,2);
                     rd1 = flip(rd1,2);
                     
-                    fp=fopen([D 'FatalErrorsWithADRDv8.txt'],'at');
+                    fp=fopen(FatalErrorFile,'at');
                     fprintf(fp,'WARN: %s - %s\n',SESSIONS(jSession).name,'flipping dti1');
                     fclose(fp);
                 end
@@ -272,7 +288,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                     md2 = flip(md2,2);
                     ad2 = flip(ad2,2);
                     rd2 = flip(rd2,2);
-                    fp=fopen([D 'FatalErrorsWithADRDv8.txt'],'at');
+                    fp=fopen(FatalErrorFile,'at');
                     fprintf(fp,'WARN: %s - %s\n',SESSIONS(jSession).name,'flipping dti2');
                     fclose(fp);
                 end
@@ -509,11 +525,12 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                     
                     %%%%%%%%%%%%%%%  Write out
                     
-                    if(~exist([D 'AllStats-HeaderWithADRDVol.csv'],'file'))
-                        fp = fopen([D 'AllStats-HeaderWithADRDVol.csv'],'wt'); fprintf(fp,'%s, ',ColHeader{:}); fprintf(fp,'\n'); fclose(fp);
+                    if(~exist(AllStatsFile,'file'))
+                        fp = fopen(AllStatsFile,'wt'); fprintf(fp,'%s, ',ColHeader{:}); fprintf(fp,'\n'); fclose(fp);
                     end
+                    
                     fp = fopen(reportFileName,'at'); fprintf(fp,'%s, ',ColValues{1}); fprintf(fp,'%e, ',ColValues{2:end}); fprintf(fp,'\n'); fclose(fp);
-                    fp = fopen([D 'AllStats-HeaderWithADRDVol.csv'],'at'); fprintf(fp,'%s, ',ColValues{1}); fprintf(fp,'%e, ',ColValues{2:end}); fprintf(fp,'\n'); fclose(fp);
+                    fp = fopen(AllStatsFile,'at'); fprintf(fp,'%s, ',ColValues{1}); fprintf(fp,'%e, ',ColValues{2:end}); fprintf(fp,'\n'); fclose(fp);
                 end
                 %% Make a preview figure
                 if(doMakePNG)
@@ -535,8 +552,8 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
             end
         catch err
             disp('Oh no!')
-            fp=fopen([D 'FatalErrorsWithADRDv8.txt'],'at');
-            fprintf(fp,'%s - %s\n',SESSIONS(jSession).name,err.message);
+            fp=fopen(FatalErrorFile,'at');
+            fprintf(fp,'%s - %s (line %d)\n',SESSIONS(jSession).name,err.message, err(end).stack(end).line);
             fclose(fp);
         end
     end
