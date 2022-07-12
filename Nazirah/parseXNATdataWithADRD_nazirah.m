@@ -6,7 +6,7 @@ D = '/Users/nana/Documents/MATLAB/BLSA/original_files/';
 D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
 
 addpath([D2 'Nazirah/functions/']);
-addpath(genpath([D2 'matlab']));
+%addpath(genpath([D2 'matlab']));
 
 
 %addpath('/fs4/masi/landmaba/BLSAdti/BLSA')
