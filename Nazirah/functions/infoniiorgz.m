@@ -1,4 +1,4 @@
-function data = loadniiorgz(filename)
+function info = infoniiorgz(filename)
 
 
 try
@@ -13,8 +13,8 @@ try
     end
     
     fprintf('Loading filename: %s\n', filename)
-    data = niftiread(filename);
+    info = niftiinfo(filename);
 catch err
-    data = [];
+    info = [];
     fprintf('ERROR: %s\n',err.message)
 end

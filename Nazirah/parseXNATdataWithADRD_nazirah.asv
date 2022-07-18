@@ -6,21 +6,16 @@
 %addpath(genpath('/fs4/masi/landmaba/BLSAdti/matlab'))
 
 %% Nazirah's Mac
-% D = '/Users/nana/Documents/MATLAB/BLSA/original_files/';
-% D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
-% 
-% addpath([D2 'Nazirah/functions/']);
+D = '/Users/nana/Documents/MATLAB/BLSA/original_files/';
+D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
 
-%% MASI Computers on Nazirah's Mac
-D = '/Users/nana/masi-42/Documents/data/';
-D2 = '/Users/nana/masi-42/Documents/Test1/';
-addpath([D2 'functions/']);
+addpath([D2 'Nazirah/functions/']);
+% %addpath(genpath([D2 'matlab']));
 
 %% MASI Computers
 % D = '/home/local/VANDERBILT/mohdkhn/Documents/data/'; % data path
 % D2 = '/home/local/VANDERBILT/mohdkhn/Documents/Test1/'; % code and labels path
 % addpath([D2 'functions/']);
-
 
 %% set time to record date and time to add to filename (FatalErrors.txt, AllStats.csv)
 timedate = datestr(now,'yyyymmddTHHMMSS');
@@ -62,10 +57,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
     SESSIONS = dir([D SUBJS(jSubj).name]);
     SESSIONS(startsWith({SESSIONS.name},'.')) = [];
     
-    fprintf('%s\n', SUBJS(jSubj).name)
-    if ~strcmp(SUBJS(jSubj).name,'BLSA_4889')
-        continue;
-    end
+    if 
     
     for jSession=1:length(SESSIONS)
         DS = [D SUBJS(jSubj).name filesep SESSIONS(jSession).name filesep];
@@ -75,18 +67,18 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
         dtiQA = dir([DS '*dtiQA_v2_1']);
         if(length(dtiQA)~=2)
             dtiQA = dir([DS '*dtiQA_v2']);
-            fprintf('Got dtiQA_v2\n')
+            disp('Got dtiQA_v2')
         end
         
         if(length(dtiQA)~=2)
             dtiQA = dir([DS '*dtiQA_v2*']);
-            fprintf('Got *dtiQA_v2*\n')
+            disp('Got *dtiQA_v2*')
         end
         
         if((length(dtiQA)~=2)+strcmp(SESSIONS(jSession).name,'BLSA_4889_02-0_10')+strcmp(SESSIONS(jSession).name,'BLSA_4806_05-0_10'))
             ver3 = 1;
             dtiQA = dir([DS '*dtiQA_v3*']);
-            fprintf('Got *dtiQA_v3*\n')
+            disp('Got *dtiQA_v3*')
         end
         dtiQAMulti = dir([DS '*dtiQA_Multi*']);
         MultiAtlas = dir([DS '*Multi_Atlas*']);
@@ -95,13 +87,12 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
         % more than one are found, choose the MPRAGE one.
         if(length(MultiAtlas)>1)
             MultiAtlas = dir([DS '*MPRAGE*Multi_Atlas*']);
-            fprintf('More than 1 multiatlas\n')
+            disp('More than 1 multiatlas')
         end
         MPRAGE = dir([DS 'MPRAGE*']);
         
-        fprintf([SUBJS(jSubj).name ' ' SESSIONS(jSession).name '\n']);
-        fprintf('Stamper: %d dtiQA: %d MultiAtlas: %d\n', length(Stamper),length(dtiQA), length(MultiAtlas));
-        
+        disp([SUBJS(jSubj).name ' ' SESSIONS(jSession).name])
+        disp([length(Stamper) length(dtiQA) length(MultiAtlas)])
         try
             % RULE:
             % dtiQA has to be more than 1
@@ -134,23 +125,23 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 if(length(dir([DS Stamper(1).name]))<3)
                     continue;
                 end
-                fprintf('FOUND valid dataset\n')
+                disp('FOUND valid dataset')
                 
                 % Create CSV report file.
                 reportFileName = [ReportFolder filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
                 
                 % If CSV file exist, don't continue below. Move to the next Session
                 if(exist(reportFileName,'file'))
-                    fprintf(['Already done: ' reportFileName '\n']);
+                    disp(['Already done: ' reportFileName]);
                     continue;
                 end
-                fprintf('touch\n')
-                system(['echo `date` > ' reportFileName]);
+                disp('touch')
+                system(['echo `date` > ' reportFileName])
                 
                 % If PNG exists, don't continue below and go to next session. [Whyy?]
                 if(doSkipPNGDone)
                     if(exist([D 'pngs' filesep SESSIONS(jSession).name '.png'],'file'))
-                        fprintf('It''s done\n');
+                        disp('It''s done');
                         continue;
                     end
                 end
@@ -172,7 +163,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 % if ver3 == 1, don't run verifyADRD
                 
                 %% Resample the EVE and BrainColor masks from T1 to DTI(1) space
-                masegname = [DS MultiAtlas(1).name filesep 'SEG' filesep 'orig_target_seg.nii.gz'];
+                masegname = [DS filesep MultiAtlas(1).name filesep 'SEG' filesep 'orig_target_seg.nii.gz'];
                 
                 % Use flirt to find a 6 dof transform
                 %                 xfmname = [DS 'mpr2fa.txt'];
@@ -257,9 +248,9 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 %faM = loaduntouchniiorniigz(faMname);
                 %faM2 = niftiread(faMname);
                 
-                faM = loadniiorgz(faMname); faMinfo = infoniiorgz(faMname);
-                fa1 = loadniiorgz(fa1name); fa1info = infoniiorgz(fa1name);
-                fa2 = loadniiorgz(fa2name); fa2info = infoniiorgz(fa2name);
+                faM = loadniiorgz(faMname); faMinfo = niftiinfo(faMname);
+                fa1 = loadniiorgz(fa1name); fa1info = niftiinfo(fa1name);
+                fa2 = loadniiorgz(fa2name); fa2info = niftiinfo(fa2name);
                 
                 mdM = loadniiorgz(mdMname); %mdMinfo = niftiinfo(mdMname);
                 md1 = loadniiorgz(md1name); %md1info = niftiinfo(md1name);
@@ -273,15 +264,15 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 rd1 = loadniiorgz(rd1name);
                 rd2 = loadniiorgz(rd2name);
                 
-                eve = loadniiorgz(eveName); eveinfo = infoniiorgz(eveName);
-                bc = loadniiorgz(brainColorName); bcinfo = infoniiorgz(brainColorName);
+                eve = loadniiorgz(eveName); eveinfo = niftiinfo(eveName);
+                bc = loadniiorgz(brainColorName); bcinfo = niftiinfo(brainColorName);
                 
                 roi1 = loadniiorgz(roi1name);
                 roi2 = loadniiorgz(roi2name);
                 
                 % debug problem with differing nifti headers (fixed in DTI qa 2.1)
                 if(mean(mean(mean((fa1-faM).^2)))>mean(mean(mean((flip(fa1,2)-faM).^2))))
-                    fprintf('Flipping\n');
+                    disp('Flipping');
                     fa1 = flip(fa1,2);
                     md1 = flip(md1,2);
                     ad1 = flip(ad1,2);
@@ -294,7 +285,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 
                 % debug problem with differing nifti headers (fixed in DTI qa 2.1)
                 if(mean(mean(mean((fa2-faM).^2)))>mean(mean(mean((flip(fa2,2)-faM).^2))))
-                    fprintf('Flipping\n');
+                    disp('Flipping');
                     fa2 = flip(fa2,2);
                     md2 = flip(md2,2);
                     ad2 = flip(ad2,2);
@@ -338,12 +329,14 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                             ColValues{end+1} = nanmedian(boxFA2.FAroi(boxFA2.grp==(2*j-1)));
                         end
                     catch
+                        
                         for j=1:length(DTISeglabelNames)
                             ColHeader{end+1} = ['FAMED-DTI1-ROI-' DTISeglabelNames{j}];
                             ColValues{end+1} = NaN;
                             ColHeader{end+1} = ['FAMED-DTI2-ROI-' DTISeglabelNames{j}];
                             ColValues{end+1} = NaN;
                         end
+                        
                     end
                     
                     
@@ -560,12 +553,10 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                 
             end
         catch err
-            fprintf('Oh no!\n')
+            disp('Oh no!')
             fp=fopen(FatalErrorFile,'at');
             fprintf(fp,'%s - %s (line %d)\n',SESSIONS(jSession).name,err.message, err(end).stack(end).line);
             fclose(fp);
         end
     end
 end
-
-cd(D2)
