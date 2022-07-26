@@ -6,15 +6,15 @@
 %addpath(genpath('/fs4/masi/landmaba/BLSAdti/matlab'))
 
 %% Nazirah's Mac
-% D = '/Users/nana/Documents/MATLAB/BLSA/original_files/';
-% D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
-%
-% addpath([D2 'Nazirah/functions/']);
+D = '/Users/nana/Documents/MATLAB/BLSA/';
+D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
+
+addpath([D2 'Nazirah/functions/']);
 
 %% MASI Computers on Nazirah's Mac
-D = '/Users/nana/masi-42/Documents/data/';
-D2 = '/Users/nana/masi-42/Documents/Test1/';
-addpath([D2 'functions/']);
+% D = '/Users/nana/masi-42/Documents/data/';
+% D2 = '/Users/nana/masi-42/Documents/Test1/';
+% addpath([D2 'functions/']);
 
 %% MASI Computers
 % D = '/home/local/VANDERBILT/mohdkhn/Documents/data/'; % data path
@@ -56,6 +56,8 @@ doSkipPNGDone = 0;
 doMakeReport = 1;
 
 
+%% Let's get the stats file ready!
+
 % Get a list of Sessions; ignore . and ..
 SESSIONS = dir([D 'BLSA*']);
 SESSIONS(startsWith({SESSIONS.name},'.')) = [];
@@ -71,48 +73,40 @@ for jSession=1:length(SESSIONS)
     % Find Stamper folder
     Stamper = dir([DS  '*Stamper*']);
     
-    dtiQA = dir([DS '*dtiQA*v7']);
+    % Find all dtiQA folder - focus on v7
+    dtiQA = dir([DS '*dtiQA_synb0_v7*']);
     if (length(dtiQA))>1
         fprintf('Got %d dtiQA_v7\n',length(dtiQA))
     end
     
-    ver3 = 0;
-%     dtiQA = dir([DS '*dtiQA_v2_1']);
-%     if(length(dtiQA)~=2)
-%         dtiQA = dir([DS '*dtiQA_v2']);
-%         fprintf('Got dtiQA_v2\n')
-%     end
-%     
-%     if(length(dtiQA)~=2)
-%         dtiQA = dir([DS '*dtiQA_v2*']);
-%         fprintf('Got *dtiQA_v2*\n')
-%     end
-    
+    % Find dtiQAMulti - dtiQA*double*
     dtiQAMulti = dir([DS '*dtiQA*double*']);
+    
+    % Find Slant folder (replace MPRAGE*Multi_Atlas)
     Slant = dir([DS '*slant*']);
     
     % Sometimes Multi-atlas will find another T1. If
     % more than one are found, choose the MPRAGE one.
     
+    % MPRAGE is located in SCANS folder
     MPRAGE = dir([DS2 'MPRAGE*']);
     
-    fprintf([SUBJS(jSubj).name ' ' SESSIONS(jSession).name '\n']);
-    fprintf('Stamper: %d dtiQA: %d MultiAtlas: %d\n', length(Stamper),length(dtiQA), length(Slant));
+    % Checking if all is there
+    fprintf([SESSIONS(jSession).name '\n']);
+    fprintf('Stamper: %d dtiQA: %d Slant: %d dtiQAMulti: %d\n', length(Stamper),length(dtiQA), length(Slant), length(dtiQAMulti));
     
     try
         % RULE:
-        % dtiQA has to be more than 1
+        % dtiQA must be more 1
         % WM stamper must exist (equals to 1)
         % Slant must exist (equals to 1)
         
         % IF dtiQA < 2 and HAS Stamper AND MultiAtlas
-        %if(~and(and(length(dtiQA)>1,length(Stamper)==1),length(MultiAtlas)==1))
         if ~(length(dtiQA)>1 && length(Stamper)==1 && length(Slant)==1)
             % The data are not there. let's write a stats file that
             % tells the user why.
             
-            % if(and(and(length(dtiQA)<2,length(Stamper)==1),length(MultiAtlas)==1))
-            if length(dtiQA)<2 && length(Stamper)==1 && length(Slant)==1
+            if length(dtiQA)<2
                 % This write report only if dtiQA is less than 2.
                 % Stamper and MultiAtlas must exist.
                 reportFileName = [ReportFolder filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
@@ -153,23 +147,48 @@ for jSession=1:length(SESSIONS)
             end
             
             %% NOW, ALL FILES EXISTS AND NEED TO BE RUN
-            %% Find the MPRAGE
-            mprfile = dir([DS MPRAGE(1).name filesep 'NIFTI' filesep '*.gz']);
-            mprname = [DS MPRAGE(1).name filesep 'NIFTI' filesep mprfile(1).name];
+            %% Find the MPRAGE 
+            SESSION_NAME > SCANS > NIFTI > filename.gz)
+            mprfile = dir([DS2 MPRAGE(1).name filesep 'NIFTI' filesep '*.gz']);
+            mprname = [mprfile(1).folder filesep mprfile(1).name];
+            %mprname = [DS MPRAGE(1).name filesep 'NIFTI' filesep mprfile(1).name];
             
             
             %% Deal with the Multi DTI session "DTI multi"/"DTI double"
             % In TGZ folder...
             %multiDTI
-            [adMname,rdMname,faMname,mdMname,roiMname,boxFABiasMname,boxFAMname,boxFASigMname] = get_and_verify_ADRD([DS dtiQAMulti(1).name filesep 'TGZ']);
-            
+            %[adMname,rdMname,faMname,mdMname,roiMname,boxFABiasMname,boxFAMname,boxFASigMname] = get_and_verify_ADRD([DS dtiQAMulti(1).name filesep 'SCALARS']);
+            cd([DS dtiQAMulti(1).name filesep 'SCALARS'])
+            adMname = findfileniiorgz([pwd filesep], 'ad.nii');
+            rdMname = findfileniiorgz([pwd filesep], 'rd.nii');
+            faMname = findfileniiorgz([pwd filesep],'fa.nii');
+            mdMname = findfileniiorgz([pwd filesep],'md.nii');
+            %roiMname = findfileniiorgz([pwd filesep 'extra'], 'multi_atlas_labels.nii');
             
             %% Deal with the first DTI session "DTI(1)"
             dti1
+            
+            %if(ver3==0)
+            %    [ad1name,rd1name,fa1name,md1name,roi1name,boxFABias1name,boxFA1name,boxFASig1name] = get_and_verify_ADRD([DS dtiQA(1).name filesep 'TGZ']);
+            %else
+                
+                fa1name = findfileniiorgz([DS dtiQA(1).name filesep 'FA' filesep], 'fa.nii');
+                md1name= findfileniiorgz([DS dtiQA(1).name filesep 'MD' filesep], 'md.nii');
+                ad1name = findfileniiorgz([DS dtiQA(1).name filesep 'AD' filesep], 'ad.nii');
+                rd1name = findfileniiorgz([pwd filesep '..' filesep 'RD' filesep], 'rd.nii' );
+                
+                roi1name = [DS dtiQA(1).name filesep 'extra' filesep  'multi_atlas_labels.nii.gz'];
+                %boxFABias1name = NaN;%[DS dtiQA(1).name filesep 'extra' filesep 'BoxplotsBias.mat'];
+                %boxFA1name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFA.mat'];
+                %boxFASig1name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFAsigma.mat'];
+            %end
+            
+            
             % if ver3 == 1, don't run verifyADRD
             
             %% Resample the EVE and BrainColor masks from T1 to DTI(1) space
-            masegname = [DS Slant(1).name filesep 'SEG' filesep 'orig_target_seg.nii.gz'];
+            masegfile = dir([DS Slant(1).name filesep 'SEG' filesep 'T1_seg.nii*']);
+            masegname = [DS Slant(1).name filesep 'SEG' filesep masegfile(1).name];
             
             % Use flirt to find a 6 dof transform
             %                 xfmname = [DS 'mpr2fa.txt'];
@@ -245,9 +264,9 @@ for jSession=1:length(SESSIONS)
                 md2name = findfileniiorgz([DS dtiQA(1).name filesep 'MD'],'md.nii');
                 roi2name = findfileniiorgz([DS dtiQA(1).name filesep 'extra'], 'multi_atlas_labels.nii');
                 
-%                 boxFABias2name = NaN;%[DS dtiQA(1).name filesep 'extra' filesep 'BoxplotsBias.mat'];
-%                 boxFA2name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFA.mat'];
-%                 boxFASig2name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFAsigma.mat'];
+                %                 boxFABias2name = NaN;%[DS dtiQA(1).name filesep 'extra' filesep 'BoxplotsBias.mat'];
+                %                 boxFA2name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFA.mat'];
+                %                 boxFASig2name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFAsigma.mat'];
             end
             %% Verify
             
@@ -557,7 +576,8 @@ for jSession=1:length(SESSIONS)
             
         end
     catch err
-        fprintf('Oh no!\n')
+        fprintf('OH NOOOOO!\n')
+        fprintf('%s - %s (line %d)\n',SESSIONS(jSession).name,err.message, err(end).stack(end).line);
         fp=fopen(FatalErrorFile,'at');
         fprintf(fp,'%s - %s (line %d)\n',SESSIONS(jSession).name,err.message, err(end).stack(end).line);
         fclose(fp);

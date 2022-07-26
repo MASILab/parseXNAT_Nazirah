@@ -10,6 +10,7 @@ D = '/Users/nana/Documents/MATLAB/BLSA/';
 D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
 
 addpath([D2 'Nazirah/functions/']);
+%addpath('/usr/local/bin/');
 
 %% MASI Computers on Nazirah's Mac
 % D = '/Users/nana/masi-42/Documents/data/';
@@ -40,7 +41,7 @@ AllStatsFile = [D 'AllStats-HeaderWithADRDVol-' timedate '.csv'];
 % DTI_path = [D 'DTIseg.txt'];
 
 EVE_path = [D2 'EVE_Labels.csv'];
-BC_path = [D2 'andrew_multiatlas_labels.csv'];
+BC_path = [D2 'T1_label_volumes.txt'];
 DTI_path = [D2 'DTIseg.txt'];
 
 [EVElabelNames,EVElabelID,BClabelNames,BClabelID,DTISeglabelNames,DTISeglabelID] = get_label_names(EVE_path,BC_path,DTI_path);
@@ -55,6 +56,8 @@ doMakePNG = 0;
 doSkipPNGDone = 0;
 doMakeReport = 1;
 
+
+%% Let's get the stats file ready!
 
 % Get a list of Sessions; ignore . and ..
 SESSIONS = dir([D 'BLSA*']);
@@ -71,48 +74,40 @@ for jSession=1:length(SESSIONS)
     % Find Stamper folder
     Stamper = dir([DS  '*Stamper*']);
     
+    % Find all dtiQA folder - focus on v7
     dtiQA = dir([DS '*dtiQA_synb0_v7*']);
     if (length(dtiQA))>1
         fprintf('Got %d dtiQA_v7\n',length(dtiQA))
     end
     
-    ver3 = 0;
-%     dtiQA = dir([DS '*dtiQA_v2_1']);
-%     if(length(dtiQA)~=2)
-%         dtiQA = dir([DS '*dtiQA_v2']);
-%         fprintf('Got dtiQA_v2\n')
-%     end
-%     
-%     if(length(dtiQA)~=2)
-%         dtiQA = dir([DS '*dtiQA_v2*']);
-%         fprintf('Got *dtiQA_v2*\n')
-%     end
-    
+    % Find dtiQAMulti - dtiQA*double*
     dtiQAMulti = dir([DS '*dtiQA*double*']);
+    
+    % Find Slant folder (replace MPRAGE*Multi_Atlas)
     Slant = dir([DS '*slant*']);
     
     % Sometimes Multi-atlas will find another T1. If
     % more than one are found, choose the MPRAGE one.
     
+    % MPRAGE is located in SCANS folder
     MPRAGE = dir([DS2 'MPRAGE*']);
     
+    % Checking if all is there
     fprintf([SESSIONS(jSession).name '\n']);
     fprintf('Stamper: %d dtiQA: %d Slant: %d dtiQAMulti: %d\n', length(Stamper),length(dtiQA), length(Slant), length(dtiQAMulti));
     
     try
         % RULE:
-        % dtiQA has to be more than 1
+        % dtiQA must be more 1
         % WM stamper must exist (equals to 1)
         % Slant must exist (equals to 1)
         
         % IF dtiQA < 2 and HAS Stamper AND MultiAtlas
-        %if(~and(and(length(dtiQA)>1,length(Stamper)==1),length(MultiAtlas)==1))
         if ~(length(dtiQA)>1 && length(Stamper)==1 && length(Slant)==1)
             % The data are not there. let's write a stats file that
             % tells the user why.
             
-            % if(and(and(length(dtiQA)<2,length(Stamper)==1),length(MultiAtlas)==1))
-            if length(dtiQA)<2 && length(Stamper)==1 && length(Slant)==1
+            if length(dtiQA)<2
                 % This write report only if dtiQA is less than 2.
                 % Stamper and MultiAtlas must exist.
                 reportFileName = [ReportFolder filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
@@ -154,20 +149,35 @@ for jSession=1:length(SESSIONS)
             
             %% NOW, ALL FILES EXISTS AND NEED TO BE RUN
             %% Find the MPRAGE
+            % Location: SESSION_NAME > SCANS > NIFTI > filename.gz
             mprfile = dir([DS2 MPRAGE(1).name filesep 'NIFTI' filesep '*.gz']);
             mprname = [mprfile(1).folder filesep mprfile(1).name];
             %mprname = [DS MPRAGE(1).name filesep 'NIFTI' filesep mprfile(1).name];
             
             
             %% Deal with the Multi DTI session "DTI multi"/"DTI double"
-            % In TGZ folder...
-            %multiDTI
-            [adMname,rdMname,faMname,mdMname,roiMname,boxFABiasMname,boxFAMname,boxFASigMname] = get_and_verify_ADRD([DS dtiQAMulti(1).name filesep 'TGZ']);
+            % Location: SESSION_NAME > ASSESSORS > dtiQAMulti > SCALARS
+            cd([DS dtiQAMulti(1).name filesep 'SCALARS'])
+            adMname = findfileniiorgz([pwd filesep], 'ad.nii');
+            rdMname = findfileniiorgz([pwd filesep], 'rd.nii');
+            faMname = findfileniiorgz([pwd filesep],'fa.nii');
+            mdMname = findfileniiorgz([pwd filesep],'md.nii');
+            %roiMname = findfileniiorgz([pwd filesep 'extra'], 'multi_atlas_labels.nii');
+            
+            %% find which is DT1 and DTI2
+            DTI1 = 1;
+            DTI2 = 2;
             
             
             %% Deal with the first DTI session "DTI(1)"
-            dti1
-            % if ver3 == 1, don't run verifyADRD
+            %dti1
+            cd([DS dtiQA(DTI1).name filesep 'SCALARS'])
+            fa1name = findfileniiorgz([pwd filesep], 'fa.nii');
+            md1name= findfileniiorgz([pwd filesep], 'md.nii');
+            ad1name = findfileniiorgz([pwd filesep], 'ad.nii');
+            rd1name = findfileniiorgz([pwd filesep], 'rd.nii' );
+            
+            roi1name = [pwd filesep 'multi_atlas_labels.nii.gz'];
             
             %% Resample the EVE and BrainColor masks from T1 to DTI(1) space
             masegfile = dir([DS Slant(1).name filesep 'SEG' filesep 'T1_seg.nii*']);
@@ -188,20 +198,18 @@ for jSession=1:length(SESSIONS)
                 error('Cannot find WM transform');
             end
             label1name = [DS Stamper(1).name filesep 'WM_LABELS' '/Rectified_EVE_Labels.nii.gz'];
-            eveName = [label1name '.subjLabels.nii.gz' ];
+            eveName = [label1name '.subjLabels.nii.gz'];
             if(length(dir(eveName))<1)
                 
                 % reg_transform -ref ref_img -invAff transform_mat transform_mat.inv
                 % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_transform
-                system(['reg_transform -ref ' fa1name ' -invAff ' xfm1name ' ' xfm1name '.inv']);
-                % input: xfm1name
-                % output: xfm1name.inv
+                system(['reg_transform -ref ' fa1name ' -invAffine ' xfm1name ' ' xfm1name '.inv']);
+                % input: xfm1name || output: xfm1name.inv
                 %system(['convert_xfm -omat ' xfm1name '2.inv' ' -inverse ' xfm1name]);
                 
                 % reg_resample -aff transform_mat.inv -ref ref_img -flo EVE_Labels.nii.gz -res EVE_Labels.nii.gz.subjLabels.nii.gz -inter 0
                 % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_resample
-                % input: xfm1name, label1name, fa1name
-                % output: label1name.subjLabels.nii.gz
+                % input: xfm1name, label1name, fa1name || output: label1name.subjLabels.nii.gz
                 system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' label1name ' -res ' label1name '.subjLabels.nii.gz' ' -inter 0'])
                 %system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' label1name '.subjLabels.nii.gz'])
             end
@@ -215,42 +223,14 @@ for jSession=1:length(SESSIONS)
             
             
             %% Now deal with the second DTI session
-            if(ver3==0)
-                %                     cd([DS dtiQA(2).name filesep 'TGZ'])
-                %                     files=dir();
-                %                     if(length(dir('QA_maps'))<3)
-                %                         system(['tar xvf ' files(3).name ' --exclude=*Reg*'])
-                %                     end
-                %                     ad2name = [pwd filesep '..' filesep 'AD' filesep 'ad.nii.gz' ];
-                %                     rd2name = [pwd filesep '..' filesep 'RD' filesep 'rd.nii.gz' ];
-                %                     fa2name= [pwd filesep 'QA_maps' filesep 'fa.nii.gz'];
-                %                     md2name= [pwd filesep 'QA_maps' filesep 'md.nii.gz'];
-                %                     roi2name = [pwd filesep 'extra' filesep 'multi_atlas_labels.nii'];
-                %                     boxFABias2name = [pwd filesep 'extra' filesep 'BoxplotsBias.mat'];
-                %                     boxFA2name = [pwd filesep 'extra' filesep 'BoxplotsFA.mat'];
-                %                     boxFASig2name = [pwd filesep 'extra' filesep 'BoxplotsFAsigma.mat'];
-                %
-                %                     verifyADRD2(ad2name,rd2name,fa2name,[pwd filesep 'QA_maps' filesep 'dt.Bdouble']);
-                
-                [ad2name,rd2name,fa2name,md2name,roi2name,boxFABias2name,boxFA2name,boxFASig2name] = get_and_verify_ADRD([DS dtiQA(2).name filesep 'TGZ']);
-            else
-                %                     fa2name = [DS dtiQA(1).name filesep 'FA' filesep 'fa.nii.gz'];
-                %                     md2name = [DS dtiQA(1).name filesep 'MD' filesep 'md.nii.gz'];
-                %                     ad2name = [DS dtiQA(1).name filesep 'AD' filesep 'ad.nii.gz'];
-                %                     rd2name = [pwd filesep '..' filesep 'RD' filesep 'rd.nii.gz' ];
-                %
-                %                     roi2name = [DS dtiQA(1).name filesep 'extra' filesep  'multi_atlas_labels.nii.gz'];
-                
-                ad2name = findfileniiorgz([DS dtiQA(1).name filesep 'AD'], 'ad.nii');
-                rd2name = findfileniiorgz([pwd filesep '..' filesep 'RD'], 'rd.nii');
-                fa2name = findfileniiorgz([DS dtiQA(1).name filesep 'FA'],'fa.nii');
-                md2name = findfileniiorgz([DS dtiQA(1).name filesep 'MD'],'md.nii');
-                roi2name = findfileniiorgz([DS dtiQA(1).name filesep 'extra'], 'multi_atlas_labels.nii');
-                
-%                 boxFABias2name = NaN;%[DS dtiQA(1).name filesep 'extra' filesep 'BoxplotsBias.mat'];
-%                 boxFA2name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFA.mat'];
-%                 boxFASig2name = NaN;%[pwd filesep 'extra' filesep 'BoxplotsFAsigma.mat'];
-            end
+            
+            cd([DS dtiQA(DTI2).name filesep 'SCALARS'])
+            ad2name = findfileniiorgz([pwd filesep], 'ad.nii');
+            rd2name = findfileniiorgz([pwd filesep], 'rd.nii');
+            fa2name = findfileniiorgz([pwd filesep],'fa.nii');
+            md2name = findfileniiorgz([pwd filesep],'md.nii');
+            %roi2name = findfileniiorgz([pwd filesep], 'multi_atlas_labels.nii');
+            
             %% Verify
             
             %faM = loaduntouchniiorniigz(faMname);
@@ -275,8 +255,8 @@ for jSession=1:length(SESSIONS)
             eve = loadniiorgz(eveName); eveinfo = infoniiorgz(eveName);
             bc = loadniiorgz(brainColorName); bcinfo = infoniiorgz(brainColorName);
             
-            roi1 = loadniiorgz(roi1name);
-            roi2 = loadniiorgz(roi2name);
+            %roi1 = loadniiorgz(roi1name);
+            %roi2 = loadniiorgz(roi2name);
             
             % debug problem with differing nifti headers (fixed in DTI qa 2.1)
             if(mean(mean(mean((fa1-faM).^2)))>mean(mean(mean((flip(fa1,2)-faM).^2))))
@@ -322,73 +302,14 @@ for jSession=1:length(SESSIONS)
                 ColValues = {SESSIONS(jSession).name};
                 
                 %% PG 4 - Load stats (bias, variance of FA and MD by ROI's)
-                %                 boxFAMname = [pwd filesep 'extra' filesep 'BoxplotsFA.mat'];
-                %                 boxFABiasMname = [pwd filesep 'extra' filesep 'BoxplotsBias.mat'];
-                
-                %                 boxFASigMname = [pwd filesep 'extra' filesep 'BoxplotsFAsigma.mat'];
-                
-                try
-                    boxFA1 = load(boxFA1name);
-                    boxFA2 = load(boxFA2name);
-                    for j=1:length(DTISeglabelNames)
-                        ColHeader{end+1} = ['FAMED-DTI1-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = nanmedian(boxFA1.FAroi(boxFA1.grp==(2*j-1)));
-                        ColHeader{end+1} = ['FAMED-DTI2-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = nanmedian(boxFA2.FAroi(boxFA2.grp==(2*j-1)));
-                    end
-                catch
-                    for j=1:length(DTISeglabelNames)
-                        ColHeader{end+1} = ['FAMED-DTI1-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = NaN;
-                        ColHeader{end+1} = ['FAMED-DTI2-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = NaN;
-                    end
-                end
-                
-                
-                try
-                    boxFA1 = load(boxFASig1name);
-                    boxFA2 = load(boxFASig2name);
-                    for j=1:length(DTISeglabelNames)
-                        ColHeader{end+1} = ['FASIG-DTI1-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = nanmedian(boxFA1.FAbootROI(boxFA1.grp==(2*j-1)));
-                        ColHeader{end+1} = ['FASIG-DTI2-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = nanmedian(boxFA2.FAbootROI(boxFA2.grp==(2*j-1)));
-                    end
-                catch
-                    for j=1:length(DTISeglabelNames)
-                        ColHeader{end+1} = ['FASIG-DTI1-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = NaN;
-                        ColHeader{end+1} = ['FASIG-DTI2-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = NaN;
-                    end
-                end
-                
-                try
-                    boxFA1 = load(boxFABias1name);
-                    boxFA2 = load(boxFABias2name);
-                    for j=1:length(DTISeglabelNames)
-                        ColHeader{end+1} = ['FABIAS-DTI1-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = nanmedian(boxFA1.Biasroi(boxFA1.grp==(2*j-1)));
-                        ColHeader{end+1} = ['FABIAS-DTI2-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = nanmedian(boxFA2.Biasroi(boxFA2.grp==(2*j-1)));
-                    end
-                catch
-                    for j=1:length(DTISeglabelNames)
-                        ColHeader{end+1} = ['FABIAS-DTI1-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = NaN;
-                        ColHeader{end+1} = ['FABIAS-DTI2-ROI-' DTISeglabelNames{j}];
-                        ColValues{end+1} = NaN;
-                    end
-                end
                 
                 %% PG 6 - DSC on labels
-                for j=1:length(DTISeglabelNames)
-                    ColHeader{end+1} = ['STATS-ROI-' DTISeglabelNames{j} '-DSC'];
-                    A = roi1==j;
-                    B = roi2==j;
-                    ColValues{end+1} = 2 * sum(A(:).*B(:)) / (sum(A(:))+sum(B(:)));
-                end
+%                 for j=1:length(DTISeglabelNames)
+%                     ColHeader{end+1} = ['STATS-ROI-' DTISeglabelNames{j} '-DSC'];
+%                     A = roi1==j;
+%                     B = roi2==j;
+%                     ColValues{end+1} = 2 * sum(A(:).*B(:)) / (sum(A(:))+sum(B(:)));
+%                 end
                 
                 %% PG 8, 10, 12, 14 FA, MD by Eve and BrainColor label
                 for j=1:length(EVElabelNames)
@@ -559,7 +480,8 @@ for jSession=1:length(SESSIONS)
             
         end
     catch err
-        fprintf('Oh no!\n')
+        fprintf('OH NOOOOO!\n')
+        fprintf('%s - %s (line %d)\n',SESSIONS(jSession).name,err.message, err(end).stack(end).line);
         fp=fopen(FatalErrorFile,'at');
         fprintf(fp,'%s - %s (line %d)\n',SESSIONS(jSession).name,err.message, err(end).stack(end).line);
         fclose(fp);

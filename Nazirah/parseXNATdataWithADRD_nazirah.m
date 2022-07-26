@@ -194,7 +194,7 @@ for jSubj = 1:length(SUBJS) %929 % [73 128 450 528 544 569 586 621 720 834 929]%
                     
                     % reg_transform -ref ref_img -invAff transform_mat transform_mat.inv
                     % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_transform
-                    system(['reg_transform -ref ' fa1name ' -invAff ' xfm1name ' ' xfm1name '.inv']);
+                    system(['reg_transform -ref ' fa1name ' -invAffine ' xfm1name ' ' xfm1name '.inv']);
                     % input: xfm1name
                     % output: xfm1name.inv
                     %system(['convert_xfm -omat ' xfm1name '2.inv' ' -inverse ' xfm1name]);

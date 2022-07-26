@@ -9,7 +9,7 @@ end
 filedata = dir([filedir filesep '*' filestring '*']);
 
 if length(filedata) > 1
-    fprintf('Warning.. there are multiple files. Choosing the first\n')
+    fprintf('Warning.. there are multiple files. Choosing the first:\n %s\n', filedata)
 end
 
 % get the fullpath of the file
