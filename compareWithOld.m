@@ -5,6 +5,7 @@ load('dataOld_BLSA5800_cut')
 % old value
 
 combine(end+1,:) = ColValues;
+%%
 check = zeros(length(ColValues),1);
 
 for i = 1:length(ColValues)

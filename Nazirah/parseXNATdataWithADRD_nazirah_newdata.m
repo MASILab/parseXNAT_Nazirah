@@ -165,8 +165,23 @@ for jSession=1:length(SESSIONS)
             %roiMname = findfileniiorgz([pwd filesep 'extra'], 'multi_atlas_labels.nii');
             
             %% find which is DT1 and DTI2
-            DTI1 = 1;
-            DTI2 = 2;
+            %DTI1 = 1;
+            %DTI2 = 2;
+            for i = 1:length(dtiQA)
+                outlogfile = dir([DS dtiQA(i).name filesep 'OUTLOG' filesep '*.txt']);
+                outlog = fileread([outlogfile.folder filesep outlogfile.name]);
+                
+                foundDTI1 = strfind(outlog,'DTI1');
+                foundDTI2 = strfind(outlog,'DTI2');
+                
+                if ~isempty(foundDTI1) && isempty(foundDTI2) % found DT1
+                    DTI1 = i;
+                elseif isempty(foundDTI1) && ~isempty(foundDTI2) % found DT2
+                    DTI2 = i;
+                else
+                    error('DTI1 and DTI2 not found or both in the same directory')
+                end
+            end
             
             
             %% Deal with the first DTI session "DTI(1)"
