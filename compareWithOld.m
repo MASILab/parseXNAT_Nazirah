@@ -1,21 +1,30 @@
-load('dataOld_BLSA5800_cut')
+load('olddata_5802.mat')
 
+% firstcol = olddata(:,1);
+% Index = strfind(firstcol,'BLSA_5802');
+% 
+% for i = 1:length(Index)
+%     if ~isempty(Index{i})
+%         Index2 = i;
+%     end
+% end
+% combine = [data(1,:); newstats(Index2,:); data(2,:)];
 % variable name: combine
 % first row: header name
 % old value
-
-combine(end+1,:) = ColValues;
 %%
-check = zeros(length(ColValues),1);
+combines = [ColHeader;olddata(2,:);ColValues];
 
-for i = 1:length(ColValues)
-    if isequal(combine{2,i},ColValues{i})
+check = zeros(length(combines),1);
+
+for i = 1:length(combines)
+    if isequal(combines{2,i},combines{3,i})
         check(i) = 1;
-    elseif isnan(combine{2,i}) && isnan(ColValues{i})
+    elseif isnan(combines{2,i}) && isnan(combines{3,i})
         check(i) = 1;
     else
         check(i) = 0;
     end
 end
-combineNotEqual = combine(:,check == 0);
+combineNotEqual = combines(:,check == 0);
 headerNotEqual = ColHeader(check == 0)';

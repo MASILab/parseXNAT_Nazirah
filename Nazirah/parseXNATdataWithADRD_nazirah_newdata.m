@@ -10,6 +10,8 @@ D = '/Users/nana/Documents/MATLAB/BLSA/';
 D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
 
 addpath([D2 'Nazirah/functions/']);
+setenv('PATH', [getenv('PATH') ':/usr/local/fsl/bin']);
+setenv('PATH', [getenv('PATH') ':/usr/local/bin']);
 %addpath('/usr/local/bin/');
 
 %% MASI Computers on Nazirah's Mac
@@ -63,7 +65,7 @@ doMakeReport = 1;
 SESSIONS = dir([D 'BLSA*']);
 SESSIONS(startsWith({SESSIONS.name},'.')) = [];
 
-for jSession=1:length(SESSIONS)
+for jSession=2%1:length(SESSIONS)
     fprintf('%s\n', SESSIONS(jSession).name)
     
     DS = [D SESSIONS(jSession).name filesep 'ASSESSORS' filesep];
@@ -150,7 +152,7 @@ for jSession=1:length(SESSIONS)
             %% NOW, ALL FILES EXISTS AND NEED TO BE RUN
             %% Find the MPRAGE
             % Location: SESSION_NAME > SCANS > NIFTI > filename.gz
-            mprfile = dir([DS2 MPRAGE(1).name filesep 'NIFTI' filesep '*.gz']);
+            mprfile = dir([DS2 MPRAGE(1).name filesep 'NIFTI' filesep '*MPRAGE*.gz']);
             mprname = [mprfile(1).folder filesep mprfile(1).name];
             %mprname = [DS MPRAGE(1).name filesep 'NIFTI' filesep mprfile(1).name];
             
@@ -204,37 +206,54 @@ for jSession=1:length(SESSIONS)
             %                 system(['flirt -in ' label1name ' -ref ' faMname ' -applyxfm -init ' xfmname ' -interp nearestneighbour' ' -out ' label1name '-flirt.nii.gz'])
             %                 system(['flirt -in ' label1name ' -ref ' faMname ' -applyxfm -init ' xfmname ' -interp nearestneighbour'])
             
+            % check if xfm matrix is there: WE NOW USE "mpr2fa_transformation_matrix.txt"
+            xfm1name = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'mpr2fa.txt'];
+            if(length(dir(xfm1name))<1)
+                % if not available, run flirt to find xfm matrix
+                mprbrainname = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'mpr_brain.nii.gz'];
+                
+                if length(dir(mprbrainname))<1
+                    system(['bet ' mprname ' ' mprbrainname ' -R -f 0.5 -g 0 -m']);
+                end
+                
+                system(['flirt -in ' mprbrainname ' -out ' mprbrainname '-flirt.nii.gz -ref ' fa1name ' -omat ' xfm1name ' -dof 6']);             
+            end
+            
             % Resample the FA labels from Eve into Subject FA
-            xfm1name = [DS Stamper(1).name filesep '/TRANSFORMATION/fa_t1_transformation_matrix.txt'];
-            if(length(dir(xfm1name))<1)
-                xfm1name = [DS Stamper(1).name filesep '/Intra_Session_Reg/outputAffine.txt'];
-            end
-            if(length(dir(xfm1name))<1)
-                error('Cannot find WM transform');
-            end
+%             xfm1name = [DS Stamper(1).name filesep '/TRANSFORMATION/fa_t1_transformation_matrix.txt'];
+%             if(length(dir(xfm1name))<1)
+%                 xfm1name = [DS Stamper(1).name filesep '/Intra_Session_Reg/outputAffine.txt'];
+%             end
+%             if(length(dir(xfm1name))<1)
+%                 error('Cannot find WM transform');
+%             end
             label1name = [DS Stamper(1).name filesep 'WM_LABELS' '/Rectified_EVE_Labels.nii.gz'];
             eveName = [label1name '.subjLabels.nii.gz'];
-            if(length(dir(eveName))<1)
+            %if(length(dir(eveName))<1)
                 
+                % resample EVE to FA
+                system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' eveName]);
+                
+                %% REMOVED
                 % reg_transform -ref ref_img -invAff transform_mat transform_mat.inv
                 % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_transform
-                system(['reg_transform -ref ' fa1name ' -invAffine ' xfm1name ' ' xfm1name '.inv']);
+                % system(['reg_transform -ref ' fa1name ' -invAffine ' xfm1name ' ' xfm1name '.inv']);
                 % input: xfm1name || output: xfm1name.inv
-                %system(['convert_xfm -omat ' xfm1name '2.inv' ' -inverse ' xfm1name]);
                 
                 % reg_resample -aff transform_mat.inv -ref ref_img -flo EVE_Labels.nii.gz -res EVE_Labels.nii.gz.subjLabels.nii.gz -inter 0
                 % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_resample
                 % input: xfm1name, label1name, fa1name || output: label1name.subjLabels.nii.gz
-                system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' label1name ' -res ' label1name '.subjLabels.nii.gz' ' -inter 0'])
+                % system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' label1name ' -res ' label1name '.subjLabels.nii.gz' ' -inter 0'])
                 %system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' label1name '.subjLabels.nii.gz'])
-            end
+            %end
             
             
             % Resample the Multi-Atlas Labels
             brainColorName = [masegname '.subjLabels.nii.gz'];
-            if(length(dir(brainColorName))<1)
-                system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' masegname ' -res ' masegname '.subjLabels.nii.gz' ' -inter 0'])
-            end
+            %if(length(dir(brainColorName))<1)
+                system(['flirt -in ' masegname ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' brainColorName]); 
+                %system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' masegname ' -res ' masegname '.subjLabels.nii.gz' ' -inter 0'])
+            %end
             
             
             %% Now deal with the second DTI session
