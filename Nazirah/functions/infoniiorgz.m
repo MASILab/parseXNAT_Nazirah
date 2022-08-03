@@ -12,7 +12,7 @@ try
         end
     end
     
-    fprintf('Loading filename: %s\n', filename)
+    %fprintf('Loading filename: %s\n', filename)
     info = niftiinfo(filename);
 catch err
     info = [];

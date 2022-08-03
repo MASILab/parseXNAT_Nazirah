@@ -13,7 +13,7 @@ load('olddata_5802.mat')
 % first row: header name
 % old value
 %%
-combines = [ColHeader;olddata(2,:);ColValues];
+combines = [ColHeader;olddata_on_new(2,:);ColValues];
 
 check = zeros(length(combines),1);
 
@@ -26,5 +26,6 @@ for i = 1:length(combines)
         check(i) = 0;
     end
 end
-combineNotEqual = combines(:,check == 0);
+combineNotEqual = combines(:,check == 0)';
 headerNotEqual = ColHeader(check == 0)';
+valDiff = [string(combineNotEqual(:,1)), ([combineNotEqual{:,3}]'-[combineNotEqual{:,2}]')];

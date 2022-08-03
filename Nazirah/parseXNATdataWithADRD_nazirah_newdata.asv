@@ -1,7 +1,5 @@
 % Setup the root directory for all subjects
-%% ADDITIONAL SOFTWARE NEEDED
-% fsl
-% mrtrix
+%% 
 
 %% Original PATH
 %D = '/fs4/masi/landmaba/BLSAdti/BLSA/'
@@ -68,7 +66,7 @@ doMakeReport = 1;
 SESSIONS = dir([D 'BLSA*']);
 SESSIONS(startsWith({SESSIONS.name},'.')) = [];
 
-for jSession=1:length(SESSIONS)
+for jSession=2%1:length(SESSIONS)
     fprintf('%s\n', SESSIONS(jSession).name)
     
     DS = [D SESSIONS(jSession).name filesep 'ASSESSORS' filesep];
@@ -209,21 +207,21 @@ for jSession=1:length(SESSIONS)
             %                 system(['flirt -in ' label1name ' -ref ' faMname ' -applyxfm -init ' xfmname ' -interp nearestneighbour'])
             
             % check if xfm matrix is there: WE NOW USE "mpr2fa_transformation_matrix.txt"
-            xfm1name = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'mprage2b0.mat'];
+            xfm1name = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'mprage2b0.txt'];
             
             % if xfm not available, need to find the xfm first!
             if(length(dir(xfm1name))<1)
                 
                 mprbrainname = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'mpr_brain.nii.gz'];
-                b0name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filesep 'b0.nii.gz'];
-                dwi1name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filesep 'dwmri.nii.gz'];
+                b0name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filsep 'b0.nii.gz'];
+                dwi1name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filsep 'dwmri.nii.gz'];
                 
                 
                 % if b0 is not there, get the b0 first
                 if (length(dir(b0name))<1)
-                    bvec1name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filesep 'dwmri.bvec'];
-                    bval1name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filesep 'dwmri.bval'];
-                    system(['dwiextract ' dwi1name ' - -bzero -fslgrad ' bvec1name ' ' bval1name ' -quiet | mrmath - mean ' b0name ' -axis 3 -quiet'])
+                    bvec1name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filsep 'dwmri.bvec'];
+                    bval1name = [DS dtiQA(DTI1).name filesep 'PREPROCESSED' filsep 'dwmri.bval'];
+                    system(['dwiextract ' dwi1name ' - -bzero -fslgrad ' bvec1name ' ' bval1name ' | mrmath - mean ' b0name ' -axis 3'])
                 end
                     
                 
@@ -233,9 +231,9 @@ for jSession=1:length(SESSIONS)
                 end
                 
                 % now we have b0, mprbrain --> find the xfm1
-                xfm1invname = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'b02mprage'];
+                xfm1invname = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'b02mprage.txt'];
                 system(['epi_reg --epi=' b0name ' --t1=' mprname ' --t1brain=' mprbrainname ' --out=' xfm1invname]);
-                system(['convert_xfm -omat ' xfm1name ' -inverse ' xfm1invname '.mat']);
+                system(['convert_xfm -omat ' xfm1name ' -inverse ' xfm1invname]);
                 
                 % 
                 %dwi1file = dir([DS2 filesep 'DTI1' filesep 'NIFTI' filesep '*DTI1.nii.gz']);
@@ -258,8 +256,8 @@ for jSession=1:length(SESSIONS)
             %if(length(dir(eveName))<1)
                 
                 % resample EVE to FA (use dwi2mprage to inverse to mprage2dwi then register)
-                %system(['convert_xfm -omat ' xfm1name '.inv -inverse' xfm1name])
-                system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' eveName]);
+                system(['convert_xfm -omat ' xfm1name '.inv -inverse' xfm1name])
+                system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name '.inv -interp nearestneighbour' ' -out ' eveName]);
                 %% REMOVED
                 % reg_transform -ref ref_img -invAff transform_mat transform_mat.inv
                 % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_transform
