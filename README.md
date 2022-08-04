@@ -3,9 +3,9 @@
 This code will parse the BLSA data (updated: 2022) to calculate the statistics for each DTI measures in SLANT and EVE regions.
 
 Software needed:
-* MATLAB (https://www.mathworks.com/products/get-matlab.html)
-* FSL (https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/)
-* MRtrix3 (https://www.mrtrix.org)
+* [MATLAB](https://www.mathworks.com/products/get-matlab.html)
+* [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/)
+* [MRtrix3](https://www.mrtrix.org)
 
 Main code: MATLAB file `parseXNATdataWithADRD_nazirah_newdata.m`.
 
