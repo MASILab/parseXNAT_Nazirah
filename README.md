@@ -34,3 +34,4 @@ Processes (step-by-step in the main code)
 To be listed here
 
 [EVE and SLANT registration to FA/DWI](reg_method.md)
+[Working on ACCRE](work_on_accre.md)
