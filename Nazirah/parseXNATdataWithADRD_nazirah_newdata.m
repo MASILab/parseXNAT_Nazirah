@@ -9,13 +9,14 @@
 %addpath(genpath('/fs4/masi/landmaba/BLSAdti/matlab'))
 
 %% Nazirah's Mac
-D = '/Users/nana/Documents/MATLAB/BLSA/';
-D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/';
-
-addpath([D2 'Nazirah/functions/']);
-setenv('PATH', [getenv('PATH') ':/usr/local/fsl/bin']);
-setenv('PATH', [getenv('PATH') ':/usr/local/bin']);
-%addpath('/usr/local/bin/');
+% D = '/Users/nana/Documents/MATLAB/BLSA/'; % data path
+% D2 = '/Users/nana/Documents/MATLAB/BLSA/parseXNAT_Nazirah/'; % output files, codes and labels path
+% EVEpath = '/Users/nana/Documents/MATLAB/BLSA/';
+% 
+% addpath([D2 'Nazirah/functions/']);
+% setenv('PATH', [getenv('PATH') ':/usr/local/fsl/bin']);
+% setenv('PATH', [getenv('PATH') ':/usr/local/bin']);
+% addpath('/usr/local/bin/');
 
 %% MASI Computers on Nazirah's Mac
 % D = '/Users/nana/masi-42/Documents/data/';
@@ -23,21 +24,27 @@ setenv('PATH', [getenv('PATH') ':/usr/local/bin']);
 % addpath([D2 'functions/']);
 
 %% MASI Computers
-% D = '/home/local/VANDERBILT/mohdkhn/Documents/data/'; % data path
-% D2 = '/home/local/VANDERBILT/mohdkhn/Documents/Test1/'; % code and labels path
-% addpath([D2 'functions/']);
-% setenv('PATH', [getenv('PATH') ':/home-nfs2/local/VANDERBILT/kanakap/mrtrix3/bin']);
+%% MASI Computers - !!D and D2 must have filesep at the end!!
+%D = '/home/local/VANDERBILT/mohdkhn/Documents/newdata/'; % data path
+D = '/nfs2/harmonization/BLSA/'; %nfs2 datapath
+D2 = '/home/local/VANDERBILT/mohdkhn/Documents/Test2-newdata/'; % code and labels path
+EVEpath = '/nfs/masi/yangq6/EVE_Reg_BLSA/Reg/';
+
+addpath([D2 'functions/']);
+setenv('PATH', [getenv('PATH') ':/usr/local/anaconda3/bin']);
+setenv('PATH', [getenv('PATH') ':/usr/local/fsl/bin']);
+setenv('PATH', [getenv('PATH') ':/usr/local/bin']);
 
 %% set time to record date and time to add to filename (FatalErrors.txt, AllStats.csv)
 timedate = datestr(now,'yyyymmddTHHMMSS');
-ReportFolder = [D 'statsWithADRDVol' timedate];
+ReportFolder = [D2 'statsWithADRDVol' timedate];
 
 if ~exist(ReportFolder,'dir')
     mkdir(ReportFolder)
 end
 
-FatalErrorFile = [D 'FatalErrorsWithADRDv8-' timedate '.txt'];
-AllStatsFile = [D 'AllStats-HeaderWithADRDVol-' timedate '.csv'];
+FatalErrorFile = [D2 'FatalErrorsWithADRDv8-' timedate '.txt'];
+AllStatsFile = [D2 'AllStats-HeaderWithADRDVol-' timedate '.csv'];
 
 %%
 % Load the label names
@@ -45,11 +52,45 @@ AllStatsFile = [D 'AllStats-HeaderWithADRDVol-' timedate '.csv'];
 % BC_path = [D 'andrew_multiatlas_labels.csv'];
 % DTI_path = [D 'DTIseg.txt'];
 
-EVE_path = [D2 'EVE_Labels.csv'];
+EVE1_path = [D2 'JHU_MNI_SS_WMPM_Type-I_SlicerLUT.txt'];
+EVE2_path = [D2 'JHU_MNI_SS_WMPM_Type-II_SlicerLUT.txt'];
+EVE3_path = [D2 'JHU_MNI_SS_WMPM_Type-III_SlicerLUT.txt'];
 BC_path = [D2 'T1_label_volumes.txt'];
-DTI_path = [D2 'DTIseg.txt'];
+%DTI_path = [D2 'DTIseg.txt'];
 
-[EVElabelNames,EVElabelID,BClabelNames,BClabelID,DTISeglabelNames,DTISeglabelID] = get_label_names(EVE_path,BC_path,DTI_path);
+%% Read labels
+% EVE labels
+EVE1labelNames = readcell(EVE1_path,"delimiter",'\n');
+EVE1labelNames2 = split(EVE1labelNames(4:end,:),' ');
+EVE1labelNames = join(EVE1labelNames2(:,[1 2]),' ');
+for i=1:length(EVE1labelNames)
+    EVE1labelID(i) = sscanf(EVE1labelNames{i},'%d');
+end
+
+EVE2labelNames = readcell(EVE2_path,"delimiter",'\n');
+EVE2labelNames2 = split(EVE2labelNames(4:end,:),' ');
+EVE2labelNames = join(EVE2labelNames2(:,[1 2]),' ');
+for i=1:length(EVE2labelNames)
+    EVE2labelID(i) = sscanf(EVE2labelNames{i},'%d');
+end
+
+EVE3labelNames = readcell(EVE3_path,"delimiter",'\n');
+EVE3labelNames2 = split(EVE3labelNames(4:end,:),' ');
+EVE3labelNames = join(EVE3labelNames2(:,[1 2]),' ');
+for i=1:length(EVE3labelNames)
+    EVE3labelID(i) = sscanf(EVE3labelNames{i},'%d');
+end
+
+% SLANT/Brain Color
+BClabelNames = readcell(BC_path,"delimiter",'\n');
+BClabelNames = BClabelNames(2:end); %remove header
+BClabelNames2 = split(BClabelNames,',');
+BClabelNames = join(BClabelNames2(:,[2 1]),' ');
+for i=1:length(BClabelNames2)
+    BClabelID(i) = str2double(BClabelNames2{i,2});
+end
+
+%[EVElabelNames,EVElabelID,BClabelNames,BClabelID,DTISeglabelNames,DTISeglabelID] = get_label_names(EVE_path,BC_path,DTI_path);
 
 %% Get a list of Subjects; ignore . and ..
 %SUBJS = dir([D filesep 'BLSA*']); SUBJS=SUBJS(1:end);
@@ -122,12 +163,11 @@ for jSession=1:length(SESSIONS)
                 error('There are not 2 DTIs.');
             end
             
-            % Now, we have enough DTI files, let's check Stamper, CSV, and PNG files
-        else
+            
+        else % Now, we have enough DTI files, let's check Stamper, CSV, and PNG files
             % if(and(and(length(dtiQA)>1,length(Stamper)==1),length(MultiAtlas)==1))
             
-            % CHECK: if WM Stamper folder has less than 3 files, don't
-            % continue. Move to the next session.
+            % CHECK: if WM Stamper folder has less than 3 files, don't continue. Move to the next session.
             if(length(dir([DS Stamper(1).name]))<3)
                 continue;
             end
@@ -137,20 +177,21 @@ for jSession=1:length(SESSIONS)
             reportFileName = [ReportFolder filesep SESSIONS(jSession).name '-AllStatsWithADRDVol.csv'];
             
             % If CSV file exist, don't continue below. Move to the next Session
+            % Nazirah: this checker is useful if change reportFolder to no-date name
             if(exist(reportFileName,'file'))
                 fprintf(['Already done: ' reportFileName '\n']);
                 continue;
             end
             fprintf('touch\n')
-            system(['echo `date` > ' reportFileName]);
+%             system(['echo `date` > ' reportFileName]);
             
             % If PNG exists, don't continue below and go to next session. [Whyy?]
-            if(doSkipPNGDone)
-                if(exist([D 'pngs' filesep SESSIONS(jSession).name '.png'],'file'))
-                    fprintf('It''s done\n');
-                    continue;
-                end
-            end
+%             if(doSkipPNGDone)
+%                 if(exist([D 'pngs' filesep SESSIONS(jSession).name '.png'],'file'))
+%                     fprintf('It''s done\n');
+%                     continue;
+%                 end
+%             end
             
             %% NOW, ALL FILES EXISTS AND NEED TO BE RUN
             %% Find the MPRAGE
@@ -199,8 +240,6 @@ for jSession=1:length(SESSIONS)
             
             
             %% Resample the EVE and BrainColor masks from T1 to DTI(1) space
-            masegfile = dir([DS Slant(1).name filesep 'SEG' filesep 'T1_seg.nii*']);
-            masegname = [DS Slant(1).name filesep 'SEG' filesep masegfile(1).name];
             
             % Use flirt to find a 6 dof transform
             %                 xfmname = [DS 'mpr2fa.txt'];
@@ -208,7 +247,7 @@ for jSession=1:length(SESSIONS)
             %                 system(['flirt -in ' label1name ' -ref ' faMname ' -applyxfm -init ' xfmname ' -interp nearestneighbour' ' -out ' label1name '-flirt.nii.gz'])
             %                 system(['flirt -in ' label1name ' -ref ' faMname ' -applyxfm -init ' xfmname ' -interp nearestneighbour'])
             
-            % check if xfm matrix is there: WE NOW USE "mpr2fa_transformation_matrix.txt"
+            % check if xfm matrix is there: WE NOW USE "mprage2b0.mat"
             xfm1name = [DS2 MPRAGE(1).name filesep 'NIFTI' filesep 'mprage2b0.mat'];
             
             % if xfm not available, need to find the xfm first!
@@ -253,33 +292,40 @@ for jSession=1:length(SESSIONS)
 %             if(length(dir(xfm1name))<1)
 %                 error('Cannot find WM transform');
 %             end
-            label1name = [DS Stamper(1).name filesep 'WM_LABELS' '/Rectified_EVE_Labels.nii.gz'];
-            eveName = [label1name '.subjLabels.nii.gz'];
-            %if(length(dir(eveName))<1)
+            label1name = [DS Stamper(1).name filesep 'WM_LABELS' filesep 'EVE1_Labels.nii.gz'];
+            label2name = [DS Stamper(1).name filesep 'WM_LABELS' filesep 'EVE2_Labels.nii.gz'];
+            label3name = [DS Stamper(1).name filesep 'WM_LABELS' filesep 'EVE3_Labels.nii.gz'];
+    
+            eve1Name = [label1name '.subjLabels.nii.gz'];
+            eve2Name = [label2name '.subjLabels.nii.gz'];
+            eve3Name = [label3name '.subjLabels.nii.gz'];
+            
+            if length(dir(eve1Name))<1 || length(dir(eve2Name))<1 || length(dir(eve3Name))<1
                 
+                if length(dir(label1name))<1 || length(dir(label2name))<1 || length(dir(label3name))<1
+                    % if labels doesn't exist in WM_LABELS, copy from Qi's EVEpath
+                    copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-I.nii.gz'],label1name)
+                    copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-II.nii.gz'],label1name)
+                    copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-III.nii.gz'],label1name)
+                end
+                    
                 % resample EVE to FA (use dwi2mprage to inverse to mprage2dwi then register)
                 %system(['convert_xfm -omat ' xfm1name '.inv -inverse' xfm1name])
-                system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' eveName]);
-                %% REMOVED
-                % reg_transform -ref ref_img -invAff transform_mat transform_mat.inv
-                % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_transform
-                % system(['reg_transform -ref ' fa1name ' -invAffine ' xfm1name ' ' xfm1name '.inv']);
-                % input: xfm1name || output: xfm1name.inv
-                
-                % reg_resample -aff transform_mat.inv -ref ref_img -flo EVE_Labels.nii.gz -res EVE_Labels.nii.gz.subjLabels.nii.gz -inter 0
-                % link: http://cmictig.cs.ucl.ac.uk/wiki/index.php/Reg_resample
-                % input: xfm1name, label1name, fa1name || output: label1name.subjLabels.nii.gz
-                % system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' label1name ' -res ' label1name '.subjLabels.nii.gz' ' -inter 0'])
-                %system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' label1name '.subjLabels.nii.gz'])
-            %end
+                system(['flirt -in ' label1name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' eve1Name]);
+                system(['flirt -in ' label2name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' eve2Name]);
+                system(['flirt -in ' label3name ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' eve3Name]);
+            end
             
             
             % Resample the Multi-Atlas Labels
+            masegfile = dir([DS Slant(1).name filesep 'SEG' filesep 'T1_seg.nii*']);
+            masegname = [DS Slant(1).name filesep 'SEG' filesep masegfile(1).name];
+            
             brainColorName = [masegname '.subjLabels.nii.gz'];
-            %if(length(dir(brainColorName))<1)
+            if(length(dir(brainColorName))<1)
                 system(['flirt -in ' masegname ' -ref ' fa1name ' -applyxfm -init ' xfm1name ' -interp nearestneighbour' ' -out ' brainColorName]); 
                 %system(['reg_resample -aff ' xfm1name '.inv ' '-ref ' fa1name ' -flo ' masegname ' -res ' masegname '.subjLabels.nii.gz' ' -inter 0'])
-            %end
+            end
             
             
             %% Now deal with the second DTI session
@@ -312,7 +358,9 @@ for jSession=1:length(SESSIONS)
             rd1 = loadniiorgz(rd1name);
             rd2 = loadniiorgz(rd2name);
             
-            eve = loadniiorgz(eveName); eveinfo = infoniiorgz(eveName);
+            eve1 = loadniiorgz(eve1Name); eve1info = infoniiorgz(eve1Name);
+            eve2 = loadniiorgz(eve2Name); eve2info = infoniiorgz(eve2Name);
+            eve3 = loadniiorgz(eve3Name); eve3info = infoniiorgz(eve3Name);
             bc = loadniiorgz(brainColorName); bcinfo = infoniiorgz(brainColorName);
             
             %roi1 = loadniiorgz(roi1name);
@@ -344,10 +392,12 @@ for jSession=1:length(SESSIONS)
             end
             
             
-            fp = fopen([D 'headerCheckv8.txt'],'at');
+            fp = fopen([D2 'headerCheckv8.txt'],'at');
             fprintf(fp,'%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n',SESSIONS(jSession).name,...
                 bcinfo.PixelDimensions(1),bcinfo.PixelDimensions(2),bcinfo.PixelDimensions(3),...
-                eveinfo.PixelDimensions(1),eveinfo.PixelDimensions(2),eveinfo.PixelDimensions(3),...
+                eve1info.PixelDimensions(1),eve1info.PixelDimensions(2),eve1info.PixelDimensions(3),...
+                eve2info.PixelDimensions(1),eve2info.PixelDimensions(2),eve2info.PixelDimensions(3),...
+                eve3info.PixelDimensions(1),eve3info.PixelDimensions(2),eve3info.PixelDimensions(3),...
                 fa1info.PixelDimensions(1),fa1info.PixelDimensions(2),fa1info.PixelDimensions(3),...
                 fa2info.PixelDimensions(1),fa2info.PixelDimensions(2),fa2info.PixelDimensions(3),...
                 faMinfo.PixelDimensions(1),faMinfo.PixelDimensions(2),faMinfo.PixelDimensions(3));
@@ -372,39 +422,58 @@ for jSession=1:length(SESSIONS)
 %                 end
                 
                 %% PG 8, 10, 12, 14 FA, MD by Eve and BrainColor label
-                for j=1:length(EVElabelNames)
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-FA-mean'];
-                    ColValues{end+1} = mean(fa1(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-FA-std'];
-                    ColValues{end+1} = std(fa1(eve(:)==EVElabelID(j)));
+                % EVE1
+                for j=1:length(EVE1labelNames)
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-FA-mean'];
+                    ColValues{end+1} = mean(fa1(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-FA-std'];
+                    ColValues{end+1} = std(fa1(eve1(:)==EVE1labelID(j)));
                     
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-FA-mean'];
-                    ColValues{end+1} = mean(fa2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-FA-std'];
-                    ColValues{end+1} = std(fa2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-FA-mean'];
-                    ColValues{end+1} = mean(faM(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-FA-std'];
-                    ColValues{end+1} = std(faM(eve(:)==EVElabelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-FA-mean'];
+                    ColValues{end+1} = mean(fa2(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-FA-std'];
+                    ColValues{end+1} = std(fa2(eve1(:)==EVE1labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-FA-mean'];
+                    ColValues{end+1} = mean(faM(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-FA-std'];
+                    ColValues{end+1} = std(faM(eve1(:)==EVE1labelID(j)));
                 end
-                
-                for j=1:length(EVElabelNames)
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-MD-mean'];
-                    ColValues{end+1} = mean(md1(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-MD-std'];
-                    ColValues{end+1} = std(md1(eve(:)==EVElabelID(j)));
+                % EVE2
+                for j=1:length(EVE2labelNames)
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-FA-mean'];
+                    ColValues{end+1} = mean(fa1(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-FA-std'];
+                    ColValues{end+1} = std(fa1(eve2(:)==EVE2labelID(j)));
                     
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-MD-mean'];
-                    ColValues{end+1} = mean(md2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-MD-std'];
-                    ColValues{end+1} = std(md2(eve(:)==EVElabelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-FA-mean'];
+                    ColValues{end+1} = mean(fa2(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-FA-std'];
+                    ColValues{end+1} = std(fa2(eve2(:)==EVE2labelID(j)));
                     
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-MD-mean'];
-                    ColValues{end+1} = mean(mdM(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-MD-std'];
-                    ColValues{end+1} = std(mdM(eve(:)==EVElabelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-FA-mean'];
+                    ColValues{end+1} = mean(faM(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-FA-std'];
+                    ColValues{end+1} = std(faM(eve2(:)==EVE2labelID(j)));
                 end
-                
+                % EVE3
+                for j=1:length(EVE3labelNames)
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-FA-mean'];
+                    ColValues{end+1} = mean(fa1(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-FA-std'];
+                    ColValues{end+1} = std(fa1(eve3(:)==EVE3labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-FA-mean'];
+                    ColValues{end+1} = mean(fa2(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-FA-std'];
+                    ColValues{end+1} = std(fa2(eve3(:)==EVE3labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-FA-mean'];
+                    ColValues{end+1} = mean(faM(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-FA-std'];
+                    ColValues{end+1} = std(faM(eve3(:)==EVE3labelID(j)));
+                end
+                % SLANT BC 
                 for j=1:length(BClabelNames)
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTI1-FA-mean'];
                     ColValues{end+1} = mean(fa1(bc(:)==BClabelID(j)));
@@ -421,7 +490,59 @@ for jSession=1:length(SESSIONS)
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-FA-std'];
                     ColValues{end+1} = std(faM(bc(:)==BClabelID(j)));
                 end
-                
+                % MD
+                % EVE1
+                for j=1:length(EVE1labelNames)
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-MD-mean'];
+                    ColValues{end+1} = mean(md1(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-MD-std'];
+                    ColValues{end+1} = std(md1(eve1(:)==EVE1labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-MD-mean'];
+                    ColValues{end+1} = mean(md2(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-MD-std'];
+                    ColValues{end+1} = std(md2(eve1(:)==EVE1labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-MD-mean'];
+                    ColValues{end+1} = mean(mdM(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-MD-std'];
+                    ColValues{end+1} = std(mdM(eve1(:)==EVE1labelID(j)));
+                end
+                % EVE2
+                for j=1:length(EVE2labelNames)
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-MD-mean'];
+                    ColValues{end+1} = mean(md1(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-MD-std'];
+                    ColValues{end+1} = std(md1(eve2(:)==EVE2labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-MD-mean'];
+                    ColValues{end+1} = mean(md2(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-MD-std'];
+                    ColValues{end+1} = std(md2(eve2(:)==EVE2labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-MD-mean'];
+                    ColValues{end+1} = mean(mdM(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-MD-std'];
+                    ColValues{end+1} = std(mdM(eve2(:)==EVE2labelID(j)));
+                end
+                % EVE3
+                for j=1:length(EVE3labelNames)
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-MD-mean'];
+                    ColValues{end+1} = mean(md1(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-MD-std'];
+                    ColValues{end+1} = std(md1(eve3(:)==EVE3labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-MD-mean'];
+                    ColValues{end+1} = mean(md2(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-MD-std'];
+                    ColValues{end+1} = std(md2(eve3(:)==EVE3labelID(j)));
+                    
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-MD-mean'];
+                    ColValues{end+1} = mean(mdM(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-MD-std'];
+                    ColValues{end+1} = std(mdM(eve3(:)==EVE3labelID(j)));
+                end
+                % SLANT BC
                 for j=1:length(BClabelNames)
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTI1-MD-mean'];
                     ColValues{end+1} = mean(md1(bc(:)==BClabelID(j)));
@@ -439,19 +560,49 @@ for jSession=1:length(SESSIONS)
                     ColValues{end+1} = std(mdM(bc(:)==BClabelID(j)));
                 end
                 %%%%%%%%%%%%%%% AD
-                for j=1:length(EVElabelNames)
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-AD-mean'];
-                    ColValues{end+1} = mean(ad1(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-AD-std'];
-                    ColValues{end+1} = std(ad1(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-AD-mean'];
-                    ColValues{end+1} = mean(ad2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-AD-std'];
-                    ColValues{end+1} = std(ad2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-AD-mean'];
-                    ColValues{end+1} = mean(adM(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-AD-std'];
-                    ColValues{end+1} = std(adM(eve(:)==EVElabelID(j)));
+                for j=1:length(EVE1labelNames)
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-AD-mean'];
+                    ColValues{end+1} = mean(ad1(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-AD-std'];
+                    ColValues{end+1} = std(ad1(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-AD-mean'];
+                    ColValues{end+1} = mean(ad2(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-AD-std'];
+                    ColValues{end+1} = std(ad2(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-AD-mean'];
+                    ColValues{end+1} = mean(adM(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-AD-std'];
+                    ColValues{end+1} = std(adM(eve1(:)==EVE1labelID(j)));
+                end
+                
+                for j=1:length(EVE2labelNames)
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-AD-mean'];
+                    ColValues{end+1} = mean(ad1(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-AD-std'];
+                    ColValues{end+1} = std(ad1(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-AD-mean'];
+                    ColValues{end+1} = mean(ad2(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-AD-std'];
+                    ColValues{end+1} = std(ad2(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-AD-mean'];
+                    ColValues{end+1} = mean(adM(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-AD-std'];
+                    ColValues{end+1} = std(adM(eve2(:)==EVE2labelID(j)));
+                end
+                
+                for j=1:length(EVE3labelNames)
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-AD-mean'];
+                    ColValues{end+1} = mean(ad1(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-AD-std'];
+                    ColValues{end+1} = std(ad1(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-AD-mean'];
+                    ColValues{end+1} = mean(ad2(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-AD-std'];
+                    ColValues{end+1} = std(ad2(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-AD-mean'];
+                    ColValues{end+1} = mean(adM(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-AD-std'];
+                    ColValues{end+1} = std(adM(eve3(:)==EVE3labelID(j)));
                 end
                 
                 for j=1:length(BClabelNames)
@@ -471,19 +622,49 @@ for jSession=1:length(SESSIONS)
                 
                 
                 %%%%%%%%%%%%%%% RD
-                for j=1:length(EVElabelNames)
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-RD-mean'];
-                    ColValues{end+1} = mean(rd1(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI1-RD-std'];
-                    ColValues{end+1} = std(rd1(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-RD-mean'];
-                    ColValues{end+1} = mean(rd2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTI2-RD-std'];
-                    ColValues{end+1} = std(rd2(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-RD-mean'];
-                    ColValues{end+1} = mean(rdM(eve(:)==EVElabelID(j)));
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'DTIM-RD-std'];
-                    ColValues{end+1} = std(rdM(eve(:)==EVElabelID(j)));
+                for j=1:length(EVE1labelNames)
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-RD-mean'];
+                    ColValues{end+1} = mean(rd1(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI1-RD-std'];
+                    ColValues{end+1} = std(rd1(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-RD-mean'];
+                    ColValues{end+1} = mean(rd2(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTI2-RD-std'];
+                    ColValues{end+1} = std(rd2(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-RD-mean'];
+                    ColValues{end+1} = mean(rdM(eve1(:)==EVE1labelID(j)));
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-RD-std'];
+                    ColValues{end+1} = std(rdM(eve1(:)==EVE1labelID(j)));
+                end
+                
+                for j=1:length(EVE2labelNames)
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-RD-mean'];
+                    ColValues{end+1} = mean(rd1(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-RD-std'];
+                    ColValues{end+1} = std(rd1(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-RD-mean'];
+                    ColValues{end+1} = mean(rd2(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI2-RD-std'];
+                    ColValues{end+1} = std(rd2(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-RD-mean'];
+                    ColValues{end+1} = mean(rdM(eve2(:)==EVE2labelID(j)));
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-RD-std'];
+                    ColValues{end+1} = std(rdM(eve2(:)==EVE2labelID(j)));
+                end
+                
+                for j=1:length(EVE3labelNames)
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-RD-mean'];
+                    ColValues{end+1} = mean(rd1(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI1-RD-std'];
+                    ColValues{end+1} = std(rd1(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-RD-mean'];
+                    ColValues{end+1} = mean(rd2(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTI2-RD-std'];
+                    ColValues{end+1} = std(rd2(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-RD-mean'];
+                    ColValues{end+1} = mean(rdM(eve3(:)==EVE3labelID(j)));
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-RD-std'];
+                    ColValues{end+1} = std(rdM(eve3(:)==EVE3labelID(j)));
                 end
                 
                 for j=1:length(BClabelNames)
@@ -507,9 +688,17 @@ for jSession=1:length(SESSIONS)
                     ColValues{end+1} = sum(bc(:)==BClabelID(j))*prod(bcinfo.PixelDimensions(1:3));
                 end
                 
-                for j=1:length(EVElabelNames)
-                    ColHeader{end+1} = ['Eve-' EVElabelNames{j} '-' 'Volume'];
-                    ColValues{end+1} = sum(eve(:)==EVElabelID(j))*prod(eveinfo.PixelDimensions(1:3));
+                for j=1:length(EVE1labelNames)
+                    ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'Volume'];
+                    ColValues{end+1} = sum(eve1(:)==EVE1labelID(j))*prod(eve1info.PixelDimensions(1:3));
+                end
+                for j=1:length(EVE2labelNames)
+                    ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'Volume'];
+                    ColValues{end+1} = sum(eve2(:)==EVE2labelID(j))*prod(eve2info.PixelDimensions(1:3));
+                end
+                for j=1:length(EVE3labelNames)
+                    ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'Volume'];
+                    ColValues{end+1} = sum(eve3(:)==EVE3labelID(j))*prod(eve3info.PixelDimensions(1:3));
                 end
                 
                 %%%%%%%%%%%%%%%  Write out

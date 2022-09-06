@@ -6,8 +6,8 @@ for DATAFOLDER in $SESSIONS
 do
 	dti=($DATAFOLDER/ASSESSORS/*dti*)
 	slant=($DATAFOLDER/ASSESSORS/*slant*)
-	#echo "dti: $dti"
-	#echo "slant: $slant"
+	echo "dti: $dti"
+	echo "slant: $slant"
 
 	SESSION=${DATAFOLDER##*/nfs/masi/BLSA/}
 	SUBJ_ID=${SESSION::9}
