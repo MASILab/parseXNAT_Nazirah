@@ -28,7 +28,7 @@
 %D = '/home/local/VANDERBILT/mohdkhn/Documents/newdata/'; % data path
 D = '/nfs2/harmonization/BLSA/'; %nfs2 datapath
 D2 = '/home/local/VANDERBILT/mohdkhn/Documents/Test4-newdata/'; % code and labels path
-EVEpath = '/nfs/masi/yangq6/EVE_Reg_BLSA/Reg2/';
+EVEpath = '/nfs/masi/yangq6/EVE_Reg_BLSA/*/';
 
 addpath([D2 'functions/']);
 setenv('PATH', [getenv('PATH') ':/usr/local/anaconda3/bin']);
@@ -106,12 +106,13 @@ doMakeReport = 1;
 %% Let's get the stats file ready!
 
 % Get a list of Sessions; ignore . and ..
-SESSIONS = dir([D 'BLSA_0347*']);
+SESSIONS = dir([D 'BLSA_*']);
 SESSIONS(startsWith({SESSIONS.name},'.')) = [];
 
 for jSession=1:length(SESSIONS)
     
     rerun = 0;
+    fprintf('\n\n=============\n')
     fprintf('%s\n', SESSIONS(jSession).name)
     
     DS = [D SESSIONS(jSession).name filesep 'ASSESSORS' filesep];
@@ -156,7 +157,7 @@ for jSession=1:length(SESSIONS)
         end
         
         % CHECK2: check Slant --> choose which Slant
-        if length(Slant)>2
+        if length(Slant)>1
             % if more than 2, choose slant from MPRAGE, not other T1
             for i = 1:length(Slant)
                 outlogfile = dir([DS Slant(i).name filesep 'PBS' filesep '*.slurm']);
@@ -177,15 +178,15 @@ for jSession=1:length(SESSIONS)
             Slant = Slant(slantID);
             
             % put a warning message in FatalErrors
-            err_message = sprintf('Slant used is %s',dtiQAMulti.name);
-            write_warning_message(FatalErrorFile, err_message);
+            err_message = sprintf('Slant used is %s',Slant.name);
+            write_warning_message(FatalErrorFile, SESSIONS(jSession).name, err_message);
         end
         
         % CHECK3: check dtiQA_double --> choose which dtiQA_double
         % Main pref: dtiQA_synb0_double
         % if no synb0 version, choose the regular dtiQA_double
         % if there is 1 synb0
-        if length(dtiQAMulti)>2
+        if length(dtiQAMulti)>1
             % if more than 2, choose slant from MPRAGE, not other T1
             
             for i = 1:length(dtiQAMulti)
@@ -215,7 +216,7 @@ for jSession=1:length(SESSIONS)
             
             % put a warning message in FatalErrors
             err_message = sprintf('dtiQA_double used is %s',dtiQAMulti.name);
-            write_warning_message(FatalErrorFile, err_message);
+            write_warning_message(FatalErrorFile, SESSIONS(jSession).name, err_message);
         end
         
         % Note:
@@ -291,7 +292,7 @@ for jSession=1:length(SESSIONS)
             
             if DTI1 == 0 || DTI2 == 0
                 err_message = 'There is only 1 DTI. The other DTI stats will be NaNs';
-                write_warning_message(FatalErrorFile, err_message);
+                write_warning_message(FatalErrorFile, SESSIONS(jSession).name, err_message);
             end
             
             %% Deal with the first DTI session "DTI(1)"
@@ -365,9 +366,12 @@ for jSession=1:length(SESSIONS)
                 
                 if length(dir(label1name))<1 || length(dir(label2name))<1 || length(dir(label3name))<1
                     % if labels doesn't exist in WM_LABELS, copy from Qi's EVEpath
-                    copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-I.nii.gz'],label1name)
-                    copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-II.nii.gz'],label1name)
-                    copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-III.nii.gz'],label1name)
+                    system(['cp ' EVEpath SESSIONS(jSession).name filesep '*Type-I.nii.gz ' label1name]);
+                    system(['cp ' EVEpath SESSIONS(jSession).name filesep '*Type-II.nii.gz ' label2name]);
+                    system(['cp ' EVEpath SESSIONS(jSession).name filesep '*Type-III.nii.gz ' label3name]);
+                    %copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-I.nii.gz'],label1name)
+                    %copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-II.nii.gz'],label2name)
+                    %copyfile([EVEpath SESSIONS(jSession).name filesep '*Type-III.nii.gz'],label3name)
                 end
                 
                 % resample all EVEs to FA using mprage2b0
