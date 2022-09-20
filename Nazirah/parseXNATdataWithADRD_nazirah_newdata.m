@@ -108,6 +108,7 @@ doMakeReport = 1;
 % Get a list of Sessions; ignore . and ..
 SESSIONS = dir([D 'BLSA_*']);
 SESSIONS(startsWith({SESSIONS.name},'.')) = [];
+fprintf('Total sessions to run: %d \n',length(SESSIONS));
 
 for jSession=1:length(SESSIONS)
     
@@ -152,7 +153,10 @@ for jSession=1:length(SESSIONS)
         
         % CHECK1: check if dirs not exist at all --> send to ERROR
         dircounts = [length(Stamper) length(dtiQA) length(Slant) length(dtiQAMulti) length(MPRAGE)];
-        if sum(dircounts==0)>0
+        if dircounts(4)==0 %only dtiQAMulti=0
+            err_message = 'No dtiQAMulti. DTIM stats will be NaNs';
+            write_warning_message(FatalErrorFile, SESSIONS(jSession).name, err_message);
+        elseif sum(dircounts==0)>0
             error('Stamper=%d dtiQA=%d Slant=%d dtiQAMulti=%d MPRAGE=%d ', dircounts(1),dircounts(2),dircounts(3),dircounts(4),dircounts(5));
         end
         
@@ -221,6 +225,7 @@ for jSession=1:length(SESSIONS)
         
         % Note:
         % At this line, dtiQAMulti and Slant should equals 1 only.
+        % Warning: dtiQAMulti = 0 --> will deal with it below
         % Now will check how many dtiQA (should have 1 or 2)
         
         % IF have all directories
@@ -264,11 +269,17 @@ for jSession=1:length(SESSIONS)
             
             %% Deal with the Multi DTI session "DTI multi"/"DTI double"
             % Location: SESSION_NAME > ASSESSORS > dtiQAMulti > SCALARS
-            cd([DS dtiQAMulti(1).name filesep 'SCALARS'])
-            adMname = findfileniiorgz([pwd filesep], 'ad.nii');
-            rdMname = findfileniiorgz([pwd filesep], 'rd.nii');
-            faMname = findfileniiorgz([pwd filesep],'fa.nii');
-            mdMname = findfileniiorgz([pwd filesep],'md.nii');
+            if ~isempty(dtiQAMulti)
+                DTIM = 1;
+                cd([DS dtiQAMulti(1).name filesep 'SCALARS'])
+                adMname = findfileniiorgz([pwd filesep], 'ad.nii');
+                rdMname = findfileniiorgz([pwd filesep], 'rd.nii');
+                faMname = findfileniiorgz([pwd filesep],'fa.nii');
+                mdMname = findfileniiorgz([pwd filesep],'md.nii');
+            elseif isempty(dtiQAMulti)
+                DTIM = 0;
+            end
+            
             %roiMname = findfileniiorgz([pwd filesep 'extra'], 'multi_atlas_labels.nii');
             
             %% find which is DT1 and DTI2
@@ -336,7 +347,7 @@ for jSession=1:length(SESSIONS)
                 if (length(dir(b0name))<1)
                     bvec1name = [DS dtiQA(dtireg).name filesep 'PREPROCESSED' filesep 'dwmri.bvec'];
                     bval1name = [DS dtiQA(dtireg).name filesep 'PREPROCESSED' filesep 'dwmri.bval'];
-                    system(['dwiextract ' dwi1name ' - -bzero -fslgrad ' bvec1name ' ' bval1name ' -quiet | mrmath - mean ' b0name ' -axis 3 -quiet'])
+                    system(['dwiextract ' dwi1name ' - -bzero -fslgrad ' bvec1name ' ' bval1name ' -quiet | mrmath - mean ' b0name ' -axis 3 -quiet']);
                 end
                 
                 
@@ -411,10 +422,12 @@ for jSession=1:length(SESSIONS)
             end
             
             % dtiM
-            faM = loadniiorgz(faMname); faMinfo = infoniiorgz(faMname);
-            mdM = loadniiorgz(mdMname);
-            adM = loadniiorgz(adMname);
-            rdM = loadniiorgz(rdMname);
+            if DTIM > 0
+                faM = loadniiorgz(faMname); faMinfo = infoniiorgz(faMname);
+                mdM = loadniiorgz(mdMname);
+                adM = loadniiorgz(adMname);
+                rdM = loadniiorgz(rdMname);
+            end
             
             % atlases
             eve1 = loadniiorgz(eve1Name); eve1info = infoniiorgz(eve1Name);
@@ -422,34 +435,31 @@ for jSession=1:length(SESSIONS)
             eve3 = loadniiorgz(eve3Name); eve3info = infoniiorgz(eve3Name);
             bc = loadniiorgz(brainColorName); bcinfo = infoniiorgz(brainColorName);
             
+            % save headercheck
             fp = fopen([D2 'headerCheckv8.txt'],'at');
-            if DTI1 > 0 && DTI2 > 0
-                fprintf(fp,'%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n',SESSIONS(jSession).name,...
-                    bcinfo.PixelDimensions(1),bcinfo.PixelDimensions(2),bcinfo.PixelDimensions(3),...
-                    eve1info.PixelDimensions(1),eve1info.PixelDimensions(2),eve1info.PixelDimensions(3),...
-                    eve2info.PixelDimensions(1),eve2info.PixelDimensions(2),eve2info.PixelDimensions(3),...
-                    eve3info.PixelDimensions(1),eve3info.PixelDimensions(2),eve3info.PixelDimensions(3),...
-                    fa1info.PixelDimensions(1),fa1info.PixelDimensions(2),fa1info.PixelDimensions(3),...
-                    fa2info.PixelDimensions(1),fa2info.PixelDimensions(2),fa2info.PixelDimensions(3),...
-                    faMinfo.PixelDimensions(1),faMinfo.PixelDimensions(2),faMinfo.PixelDimensions(3));
-            elseif DTI1 == 0 && DTI2 > 0
-                fprintf(fp,'%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n',SESSIONS(jSession).name,...
-                    bcinfo.PixelDimensions(1),bcinfo.PixelDimensions(2),bcinfo.PixelDimensions(3),...
-                    eve1info.PixelDimensions(1),eve1info.PixelDimensions(2),eve1info.PixelDimensions(3),...
-                    eve2info.PixelDimensions(1),eve2info.PixelDimensions(2),eve2info.PixelDimensions(3),...
-                    eve3info.PixelDimensions(1),eve3info.PixelDimensions(2),eve3info.PixelDimensions(3),...
-                    NaN,NaN,NaN,...
-                    fa2info.PixelDimensions(1),fa2info.PixelDimensions(2),fa2info.PixelDimensions(3),...
-                    faMinfo.PixelDimensions(1),faMinfo.PixelDimensions(2),faMinfo.PixelDimensions(3));
-            elseif DTI1 > 0 && DTI2 == 0
-                fprintf(fp,'%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n',SESSIONS(jSession).name,...
-                    bcinfo.PixelDimensions(1),bcinfo.PixelDimensions(2),bcinfo.PixelDimensions(3),...
-                    eve1info.PixelDimensions(1),eve1info.PixelDimensions(2),eve1info.PixelDimensions(3),...
-                    eve2info.PixelDimensions(1),eve2info.PixelDimensions(2),eve2info.PixelDimensions(3),...
-                    eve3info.PixelDimensions(1),eve3info.PixelDimensions(2),eve3info.PixelDimensions(3),...
-                    fa1info.PixelDimensions(1),fa1info.PixelDimensions(2),fa1info.PixelDimensions(3),...
-                    NaN,NaN,NaN,...
-                    faMinfo.PixelDimensions(1),faMinfo.PixelDimensions(2),faMinfo.PixelDimensions(3));
+            fprintf(fp,'%s ',SESSIONS(jSession).name);
+            fprintf(fp,'%f %f %f %f %f %f %f %f %f %f %f %f ', ...
+                bcinfo.PixelDimensions(1),bcinfo.PixelDimensions(2),bcinfo.PixelDimensions(3),...
+                eve1info.PixelDimensions(1),eve1info.PixelDimensions(2),eve1info.PixelDimensions(3),...
+                eve2info.PixelDimensions(1),eve2info.PixelDimensions(2),eve2info.PixelDimensions(3),...
+                eve3info.PixelDimensions(1),eve3info.PixelDimensions(2),eve3info.PixelDimensions(3));
+            
+            if DTI1 > 0
+                fprintf(fp,'%f %f %f ', fa1info.PixelDimensions(1),fa1info.PixelDimensions(2),fa1info.PixelDimensions(3));
+            elseif DTI1 == 0
+                fprintf(fp,'%f %f %f ',NaN,NaN,NaN);
+            end
+            
+            if DTI2 > 0
+                fprintf(fp,'%f %f %f ', fa2info.PixelDimensions(1),fa2info.PixelDimensions(2),fa2info.PixelDimensions(3));
+            elseif DTI2 == 0
+                fprintf(fp,'%f %f %f ',NaN,NaN,NaN);
+            end
+            
+            if DTIM > 0
+                fprintf(fp,'%f %f %f ', faMinfo.PixelDimensions(1),faMinfo.PixelDimensions(2),faMinfo.PixelDimensions(3));
+            elseif DTIM == 0
+                fprintf(fp,'%f %f %f ',NaN,NaN,NaN);
             end
             
             fclose(fp);
@@ -496,10 +506,16 @@ for jSession=1:length(SESSIONS)
                     end
                     
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-FA-mean'];
-                    ColValues{end+1} = mean(faM(eve1(:)==EVE1labelID(j)));
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-FA-std'];
-                    ColValues{end+1} = std(faM(eve1(:)==EVE1labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(faM(eve1(:)==EVE1labelID(j)));
+                        ColValues{end+1} = std(faM(eve1(:)==EVE1labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
+                
                 % EVE2
                 for j=1:length(EVE2labelNames)
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTI1-FA-mean'];
@@ -523,9 +539,15 @@ for jSession=1:length(SESSIONS)
                     end
                     
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-FA-mean'];
-                    ColValues{end+1} = mean(faM(eve2(:)==EVE2labelID(j)));
+                    
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-FA-std'];
-                    ColValues{end+1} = std(faM(eve2(:)==EVE2labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(faM(eve2(:)==EVE2labelID(j)));
+                        ColValues{end+1} = std(faM(eve2(:)==EVE2labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 % EVE3
                 for j=1:length(EVE3labelNames)
@@ -550,9 +572,14 @@ for jSession=1:length(SESSIONS)
                     end
                     
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-FA-mean'];
-                    ColValues{end+1} = mean(faM(eve3(:)==EVE3labelID(j)));
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-FA-std'];
-                    ColValues{end+1} = std(faM(eve3(:)==EVE3labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(faM(eve3(:)==EVE3labelID(j)));
+                        ColValues{end+1} = std(faM(eve3(:)==EVE3labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 % SLANT BC
                 for j=1:length(BClabelNames)
@@ -577,9 +604,14 @@ for jSession=1:length(SESSIONS)
                     end
                     
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-FA-mean'];
-                    ColValues{end+1} = mean(faM(bc(:)==BClabelID(j)));
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-FA-std'];
-                    ColValues{end+1} = std(faM(bc(:)==BClabelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(faM(bc(:)==BClabelID(j)));
+                        ColValues{end+1} = std(faM(bc(:)==BClabelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 % MD
                 % EVE1
@@ -606,8 +638,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-MD-mean'];
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-MD-std'];
-                    ColValues{end+1} = mean(mdM(eve1(:)==EVE1labelID(j)));
-                    ColValues{end+1} = std(mdM(eve1(:)==EVE1labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(mdM(eve1(:)==EVE1labelID(j)));
+                        ColValues{end+1} = std(mdM(eve1(:)==EVE1labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 % EVE2
                 for j=1:length(EVE2labelNames)
@@ -633,8 +670,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-MD-mean'];
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-MD-std'];
-                    ColValues{end+1} = mean(mdM(eve2(:)==EVE2labelID(j)));
-                    ColValues{end+1} = std(mdM(eve2(:)==EVE2labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(mdM(eve2(:)==EVE2labelID(j)));
+                        ColValues{end+1} = std(mdM(eve2(:)==EVE2labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 % EVE3
                 for j=1:length(EVE3labelNames)
@@ -660,8 +702,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-MD-mean'];
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-MD-std'];
-                    ColValues{end+1} = mean(mdM(eve3(:)==EVE3labelID(j)));
-                    ColValues{end+1} = std(mdM(eve3(:)==EVE3labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(mdM(eve3(:)==EVE3labelID(j)));
+                        ColValues{end+1} = std(mdM(eve3(:)==EVE3labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 % SLANT BC
                 for j=1:length(BClabelNames)
@@ -687,8 +734,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-MD-mean'];
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-MD-std'];
-                    ColValues{end+1} = mean(mdM(bc(:)==BClabelID(j)));
-                    ColValues{end+1} = std(mdM(bc(:)==BClabelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(mdM(bc(:)==BClabelID(j)));
+                        ColValues{end+1} = std(mdM(bc(:)==BClabelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 %%%%%%%%%%%%%%% AD
                 for j=1:length(EVE1labelNames)
@@ -714,8 +766,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-AD-mean'];
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-AD-std'];
-                    ColValues{end+1} = mean(adM(eve1(:)==EVE1labelID(j)));
-                    ColValues{end+1} = std(adM(eve1(:)==EVE1labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(adM(eve1(:)==EVE1labelID(j)));
+                        ColValues{end+1} = std(adM(eve1(:)==EVE1labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 for j=1:length(EVE2labelNames)
@@ -741,8 +798,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-AD-mean'];
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-AD-std'];
-                    ColValues{end+1} = mean(adM(eve2(:)==EVE2labelID(j)));
-                    ColValues{end+1} = std(adM(eve2(:)==EVE2labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(adM(eve2(:)==EVE2labelID(j)));
+                        ColValues{end+1} = std(adM(eve2(:)==EVE2labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 for j=1:length(EVE3labelNames)
@@ -768,8 +830,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-AD-mean'];
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-AD-std'];
-                    ColValues{end+1} = mean(adM(eve3(:)==EVE3labelID(j)));
-                    ColValues{end+1} = std(adM(eve3(:)==EVE3labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(adM(eve3(:)==EVE3labelID(j)));
+                        ColValues{end+1} = std(adM(eve3(:)==EVE3labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 for j=1:length(BClabelNames)
@@ -795,8 +862,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-AD-mean'];
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-AD-std'];
-                    ColValues{end+1} = mean(adM(bc(:)==BClabelID(j)));
-                    ColValues{end+1} = std(adM(bc(:)==BClabelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(adM(bc(:)==BClabelID(j)));
+                        ColValues{end+1} = std(adM(bc(:)==BClabelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 
@@ -824,8 +896,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-RD-mean'];
                     ColHeader{end+1} = ['EveType1-' EVE1labelNames{j} '-' 'DTIM-RD-std'];
-                    ColValues{end+1} = mean(rdM(eve1(:)==EVE1labelID(j)));
-                    ColValues{end+1} = std(rdM(eve1(:)==EVE1labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(rdM(eve1(:)==EVE1labelID(j)));
+                        ColValues{end+1} = std(rdM(eve1(:)==EVE1labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 for j=1:length(EVE2labelNames)
@@ -851,8 +928,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-RD-mean'];
                     ColHeader{end+1} = ['EveType2-' EVE2labelNames{j} '-' 'DTIM-RD-std'];
-                    ColValues{end+1} = mean(rdM(eve2(:)==EVE2labelID(j)));
-                    ColValues{end+1} = std(rdM(eve2(:)==EVE2labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(rdM(eve2(:)==EVE2labelID(j)));
+                        ColValues{end+1} = std(rdM(eve2(:)==EVE2labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 for j=1:length(EVE3labelNames)
@@ -878,8 +960,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-RD-mean'];
                     ColHeader{end+1} = ['EveType3-' EVE3labelNames{j} '-' 'DTIM-RD-std'];
-                    ColValues{end+1} = mean(rdM(eve3(:)==EVE3labelID(j)));
-                    ColValues{end+1} = std(rdM(eve3(:)==EVE3labelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(rdM(eve3(:)==EVE3labelID(j)));
+                        ColValues{end+1} = std(rdM(eve3(:)==EVE3labelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 for j=1:length(BClabelNames)
@@ -905,8 +992,13 @@ for jSession=1:length(SESSIONS)
                     
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-RD-mean'];
                     ColHeader{end+1} = ['BrainColor-' BClabelNames{j} '-' 'DTIM-RD-std'];
-                    ColValues{end+1} = mean(rdM(bc(:)==BClabelID(j)));
-                    ColValues{end+1} = std(rdM(bc(:)==BClabelID(j)));
+                    if DTIM > 0
+                        ColValues{end+1} = mean(rdM(bc(:)==BClabelID(j)));
+                        ColValues{end+1} = std(rdM(bc(:)==BClabelID(j)));
+                    else
+                        ColValues{end+1} = NaN;
+                        ColValues{end+1} = NaN;
+                    end
                 end
                 
                 %%%%%%%%%%%%%%% ROI Volumes
