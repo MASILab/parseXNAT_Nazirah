@@ -15,8 +15,8 @@ Software needed:
 
 Main code: MATLAB file `parseXNATdataWithADRD_nazirah_newdata.m`.  
 * GitHub code path: https://github.com/MASILab/parseXNAT_Nazirah/tree/main/Nazirah
-* MASI path: `/home/local/VANDERBILT/mohdkhn/Documents/Test3-newdata`  
-(as of 2022/09/08)
+* MASI path: `/home/local/VANDERBILT/mohdkhn/Documents/Test4-newdata`  
+(as of 2022/09/20)
 
 Functions needed are in the `functions` folder.
 <br/><br/>
@@ -31,8 +31,8 @@ If you have different organization of the data, check all XXname variables if th
 The original paths for each file used in this code is here:  
 | File | Location |
 |---|---|
-|EVE Atlases | D2 > session_name > ASSESSORS > White_Matter_Stamper > WM_LABELS > EVEx_Labels.nii.gz |
-|SLANT Atlas | D2 > session_name > ASSESSORS > Slant > REG > T1_seg.nii.gz |
+|EVE Atlases registered to MPRAGE | D2 > session_name > ASSESSORS > White_Matter_Stamper > WM_LABELS > EVEx_Labels.nii.gz |
+|SLANT Atlas registered to MPRAGE | D2 > session_name > ASSESSORS > Slant > REG > T1_seg.nii.gz |
 |MPRAGE | D2 > session_name > SCANS > MPRAGE > NIFTI > XX_MPRAGE.nii.gz |
 |FA/MD/RD/AD | D2 > session_name > ASSESSORS > DTI# > SCALARS > filename.nii.gz |
 
@@ -44,7 +44,7 @@ This code will generate images including (if not there yet):
 |XFM matrix from MPRAGE to B0 | session_name > SCANS > MPRAGE > NIFTI > mprage2b0.mat
 |XFM matrix from B0 to MPRAGE (inv of above) | session_name > SCANS > MPRAGE > NIFTI > b02mprage.mat
 |B0 image | D2 > session_name > ASSESSORS > DTI# > PREPROCESSED > b0.nii.gz
-|all EVE2DTI images | D2 > session_name > ASSESSORS > White_Matter_Stamper > WM_LABELS > EVEx_Labels.nii.gz.subjLabels.nii.gz
+|EVE Atlases registered to DTI | D2 > session_name > ASSESSORS > White_Matter_Stamper > WM_LABELS > EVEx_Labels.nii.gz.subjLabels.nii.gz
 
 <br/><br/>
 
